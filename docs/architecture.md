@@ -90,22 +90,29 @@ plugins or CLI tools.
 
 See [modules/dbus_service.md](modules/dbus_service.md) for the full API reference.
 
-### Notifier (`notifier.py`) -- not yet implemented
+### Notifier (`notifier.py`)
 
-Will send desktop notifications via `notify-send` (subprocess call). For small
+Sends desktop notifications via `notify-send` (subprocess call). For small
 batches (<=3 new PRs), each PR gets its own notification. For larger batches, a
 single summary notification is sent.
 
-See [modules/notifier.md](modules/notifier.md) for planned API.
+See [modules/notifier.md](modules/notifier.md) for the full API reference.
 
-### Daemon (`daemon.py`) -- not yet implemented
+### Daemon (`daemon.py`)
 
-The main orchestrator. Will wire together all components: load config, start the
-poller, run poll cycles on a timer, feed results into the state store, trigger
-notifications and D-Bus signals on diffs, and handle Unix signals (SIGTERM /
+The main orchestrator. Wires together all components: loads config, starts the
+poller, runs poll cycles on a timer, feeds results into the state store, triggers
+notifications and D-Bus signals on diffs, and handles Unix signals (SIGTERM /
 SIGINT for shutdown, SIGHUP for config reload).
 
-See [modules/daemon.md](modules/daemon.md) for planned API.
+The poll loop uses `asyncio.Event.wait(timeout=poll_interval)` instead of
+`asyncio.sleep` so that shutdown is immediate rather than waiting for the current
+sleep to finish. First-poll notifications are suppressed to avoid notification
+spam on startup (the D-Bus signal still fires so panel plugins can populate
+state). On SIGHUP, the daemon reloads the config file and restarts the HTTP
+session to pick up new token/headers.
+
+See [modules/daemon.md](modules/daemon.md) for the full API reference.
 
 ## Data flow
 
@@ -197,9 +204,9 @@ The system is designed to be resilient to transient failures:
 The daemon should never crash from a transient GitHub API issue. It logs the
 error and continues with the next poll cycle.
 
-## Signal handling (planned)
+## Signal handling
 
 | Signal | Behavior |
 |---|---|
-| `SIGTERM` / `SIGINT` | Graceful shutdown: close HTTP session, unexport D-Bus, exit |
-| `SIGHUP` | Reload configuration from disk, update poller settings |
+| `SIGTERM` / `SIGINT` | Graceful shutdown: set stop event, close HTTP session, unexport D-Bus, exit |
+| `SIGHUP` | Reload configuration from disk, restart HTTP session, update poller settings |
