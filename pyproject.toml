@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "github-monitor"
 version = "0.1.0"
@@ -6,6 +10,7 @@ requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.9,<4",
     "dbus-next>=0.2.3,<1",
+    "pytest>=9.0.2",
 ]
 
 [project.scripts]

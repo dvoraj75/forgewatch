@@ -207,10 +207,11 @@ wheels = [
 [[package]]
 name = "github-monitor"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "dbus-next" },
+    { name = "pytest" },
 ]
 
 [package.dev-dependencies]
@@ -224,6 +225,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.9,<4" },
     { name = "dbus-next", specifier = ">=0.2.3,<1" },
+    { name = "pytest", specifier = ">=9.0.2" },
 ]
 
 [package.metadata.requires-dev]
