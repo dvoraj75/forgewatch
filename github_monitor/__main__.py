@@ -1,7 +1,10 @@
+"""Allow ``python -m github_monitor`` to launch the daemon."""
+
 from .daemon import run
 
 
-def main():
+def main() -> None:
+    """CLI entry point."""
     run()
 
 
