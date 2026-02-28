@@ -64,23 +64,31 @@ queries.
 
 See [modules/poller.md](modules/poller.md) for the full API reference.
 
-### State Store (`store.py`) -- not yet implemented
+### State Store (`store.py`)
 
-Will hold current PR state in an in-memory dictionary keyed by PR URL. On each
+Holds current PR state in an in-memory dictionary keyed by PR URL. On each
 poll cycle, the store computes a diff: which PRs are new, which were updated,
 and which have disappeared (closed/merged). This diff drives both notifications
-and D-Bus signals.
+and D-Bus signals. `StateDiff` and `StoreStatus` are frozen dataclasses
+(immutable value objects).
 
-See [modules/store.md](modules/store.md) for planned API.
+See [modules/store.md](modules/store.md) for the full API reference.
 
-### D-Bus Interface (`dbus_service.py`) -- not yet implemented
+### D-Bus Interface (`dbus_service.py`)
 
-Will expose the daemon's state on the session bus under the well-known name
-`org.github_monitor.Daemon`. Planned methods: `GetPullRequests()`,
-`GetStatus()`, `Refresh()`. Planned signal: `PullRequestsChanged`. This is the
-integration point for future panel plugins or CLI tools.
+Exposes the daemon's state on the session bus under the well-known name
+`org.github_monitor.Daemon` at object path `/org/github_monitor/Daemon`.
+Provides three methods (`GetPullRequests`, `GetStatus`, `Refresh`) and one
+signal (`PullRequestsChanged`). All data is serialised as JSON strings over
+the D-Bus wire format.
 
-See [modules/dbus_service.md](modules/dbus_service.md) for planned API.
+The `Refresh` method is async — it triggers an immediate poll cycle and
+returns the updated PR list. The `PullRequestsChanged` signal is emitted by
+the daemon after each poll cycle that produces changes, carrying the full
+current PR list as its payload. This is the integration point for future panel
+plugins or CLI tools.
+
+See [modules/dbus_service.md](modules/dbus_service.md) for the full API reference.
 
 ### Notifier (`notifier.py`) -- not yet implemented
 
