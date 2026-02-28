@@ -1,0 +1,14 @@
+# GitHub personal access token
+# Required scopes: repo (for private repos) or public_repo (public only)
+github_token = "ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+
+# Your GitHub username
+github_username = "your-username"
+
+# Polling interval in seconds (default: 300 = 5 minutes)
+poll_interval = 300
+
+# Optional: filter to specific repos (owner/name format)
+# If empty, monitors all repos where you have review requests
+# repos = ["owner/repo1", "owner/repo2"]
+repos = []
