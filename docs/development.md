@@ -27,17 +27,22 @@ github_monitor/          # Main package
 ├── __main__.py          # python -m entry point
 ├── config.py            # Config loading + validation
 ├── poller.py            # GitHub API client
-├── store.py             # State store (Phase 4)
-├── dbus_service.py      # D-Bus interface (Phase 5)
-├── notifier.py          # Desktop notifications (Phase 6)
-└── daemon.py            # Main daemon loop (Phase 7)
+├── store.py             # State store
+├── dbus_service.py      # D-Bus interface
+├── notifier.py          # Desktop notifications
+└── daemon.py            # Main daemon loop
+
+systemd/
+└── github-monitor.service  # Systemd user service unit
 
 tests/
 ├── test_config.py       # 17 tests
 ├── test_poller.py       # 21 tests
 ├── test_store.py        # 24 tests
 ├── test_dbus_service.py # 28 tests
-└── test_notifier.py     # 24 tests
+├── test_notifier.py     # 24 tests
+├── test_daemon.py       # 30 tests
+└── test_main.py         # 7 tests
 ```
 
 ## Running checks
@@ -55,7 +60,7 @@ uv run ruff format .
 uv run mypy .
 
 # Tests
-uv run pytest            # 114 tests, ~8 seconds
+uv run pytest            # 151 tests, ~8 seconds
 uv run pytest -v         # verbose output
 uv run pytest -x         # stop on first failure
 ```

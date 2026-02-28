@@ -2,8 +2,6 @@
 
 Module: `github_monitor.dbus_service`
 
-> **Status:** Implemented (Phase 5).
-
 Exposes the daemon's state on the D-Bus session bus under the well-known name
 `org.github_monitor.Daemon`. External tools (panel plugins, CLI scripts) can
 call methods to query PR state or trigger a refresh, and subscribe to the

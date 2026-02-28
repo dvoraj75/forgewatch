@@ -2,8 +2,6 @@
 
 Module: `github_monitor.daemon`
 
-> **Status:** Implemented (Phase 7).
-
 The main orchestrator that wires together all components: configuration
 loading, GitHub API polling, state management, desktop notifications, D-Bus
 service registration, and Unix signal handling.

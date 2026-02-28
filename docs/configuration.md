@@ -8,7 +8,7 @@ overrides.
 The config file path is resolved in this order:
 
 1. **Explicit path** — passed directly to `load_config(path)` or via the `-c` /
-   `--config` CLI flag (planned)
+   `--config` CLI flag
 2. **`GITHUB_MONITOR_CONFIG` env var** — if set, its value is used as the config
    file path
 3. **Default path** — `~/.config/github-monitor/config.toml`

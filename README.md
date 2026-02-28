@@ -4,10 +4,6 @@ A Python daemon that polls GitHub for pull requests assigned to you (as reviewer
 or assignee), holds state in memory, exposes it over D-Bus, and sends desktop
 notifications when new PRs arrive.
 
-> **Status:** Work in progress. Phases 1-7 (scaffold, configuration, poller,
-> state store, D-Bus service, notifier, daemon) are complete with full test
-> coverage. Phase 8 (systemd) is not yet implemented.
-
 ## Architecture
 
 ```
@@ -105,6 +101,26 @@ uv run github-monitor -c /path/to/config.toml
 uv run github-monitor -v
 ```
 
+### Systemd user service (optional)
+
+To run github-monitor as a background service that starts on login:
+
+```bash
+# Install the service
+mkdir -p ~/.config/systemd/user/
+cp systemd/github-monitor.service ~/.config/systemd/user/
+
+# Enable and start
+systemctl --user daemon-reload
+systemctl --user enable --now github-monitor
+
+# Check logs
+journalctl --user -u github-monitor -f
+```
+
+See [docs/systemd.md](docs/systemd.md) for the full guide, including token
+configuration, security hardening details, and troubleshooting.
+
 ## Project structure
 
 ```
@@ -123,6 +139,9 @@ github-monitor/
 │   ├── dbus_service.py          # D-Bus interface (methods, signals, bus setup)
 │   ├── notifier.py              # Desktop notifications via notify-send
 │   └── daemon.py                # Main daemon loop and signal handling
+│
+├── systemd/
+│   └── github-monitor.service   # Systemd user service unit file
 │
 ├── tests/
 │   ├── test_config.py           # 17 tests for config module
@@ -167,26 +186,13 @@ details, and project structure notes.
 | [docs/architecture.md](docs/architecture.md) | System design, component interactions, design decisions |
 | [docs/configuration.md](docs/configuration.md) | Full configuration reference with examples |
 | [docs/development.md](docs/development.md) | Developer guide: tooling, conventions, testing |
-| [docs/systemd.md](docs/systemd.md) | Systemd user service setup (planned) |
+| [docs/systemd.md](docs/systemd.md) | Systemd user service setup and management |
 | [docs/modules/config.md](docs/modules/config.md) | `config.py` API reference |
 | [docs/modules/poller.md](docs/modules/poller.md) | `poller.py` API reference |
 | [docs/modules/store.md](docs/modules/store.md) | `store.py` API reference |
 | [docs/modules/dbus_service.md](docs/modules/dbus_service.md) | `dbus_service.py` API reference |
 | [docs/modules/notifier.md](docs/modules/notifier.md) | `notifier.py` API reference |
 | [docs/modules/daemon.md](docs/modules/daemon.md) | `daemon.py` API reference |
-
-## Implementation phases
-
-| Phase | Module | Status |
-|---|---|---|
-| 1. Scaffold | pyproject.toml, package structure | Done |
-| 2. Configuration | `config.py` | Done |
-| 3. GitHub Poller | `poller.py` | Done |
-| 4. State Store | `store.py` | Done |
-| 5. D-Bus Service | `dbus_service.py` | Done |
-| 6. Notifier | `notifier.py` | Done |
-| 7. Daemon | `daemon.py`, `__main__.py` | Done |
-| 8. Systemd | `github-monitor.service` | Not started |
 
 ## Dependencies
 

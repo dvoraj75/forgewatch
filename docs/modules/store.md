@@ -2,8 +2,6 @@
 
 Module: `github_monitor.store`
 
-> **Status:** Implemented (Phase 4).
-
 In-memory state management for tracked pull requests. Computes diffs between
 poll cycles to identify new, updated, and closed PRs.
 

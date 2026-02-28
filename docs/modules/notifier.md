@@ -2,8 +2,6 @@
 
 Module: `github_monitor.notifier`
 
-> **Status:** Implemented (Phase 6).
-
 Sends desktop notifications via `notify-send` when new pull requests are
 detected. Small batches get individual notifications; larger batches get a
 single summary to avoid desktop spam.
