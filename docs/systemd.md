@@ -254,6 +254,44 @@ ExecStart=/home/youruser/.local/bin/github-monitor
 
 Remember to run `systemctl --user daemon-reload` after editing the service file.
 
+### Clicking a notification does not open the browser
+
+When running as a systemd service with security hardening, notification
+click-to-open uses the **XDG Desktop Portal** (D-Bus) to open URLs instead of
+calling `xdg-open` directly. This is necessary because `xdg-open` can fail
+silently inside the sandbox — notably when the browser is a Snap package
+(Snap's `snap-confine` rejects the restricted permissions set by
+`ProtectSystem=strict` and `NoNewPrivileges=true`).
+
+**Requirements for click-to-open:**
+
+- The `xdg-desktop-portal` service must be running (standard on GNOME, KDE,
+  XFCE, and most other desktop environments)
+- A portal backend must be installed (e.g. `xdg-desktop-portal-gtk`,
+  `xdg-desktop-portal-gnome`, or `xdg-desktop-portal-kde`)
+
+**Verify the portal is available:**
+
+```bash
+gdbus call --session \
+  -d org.freedesktop.portal.Desktop \
+  -o /org/freedesktop/portal/desktop \
+  -m org.freedesktop.portal.OpenURI.OpenURI \
+  "" "https://example.com" {}
+```
+
+If this opens a browser tab, the portal is working. If it fails, install the
+portal packages:
+
+```bash
+# Debian / Ubuntu
+sudo apt install xdg-desktop-portal xdg-desktop-portal-gtk
+```
+
+If the portal is unavailable, the notifier falls back to `xdg-open`
+automatically (which works when running outside the systemd sandbox, e.g.
+during development).
+
 ## Uninstallation
 
 ```bash

@@ -2,7 +2,10 @@
 
 Supports:
 - PR author avatar as notification icon (downloaded from GitHub)
-- Clickable notifications that open the PR in a browser via xdg-open
+- Clickable notifications that open the PR in a browser
+- Uses the XDG Desktop Portal (D-Bus) to open URLs, which works
+  correctly from sandboxed systemd services.  Falls back to xdg-open
+  when the portal is unavailable.
 """
 
 from __future__ import annotations
@@ -15,6 +18,10 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import aiohttp
+from dbus_next.aio.message_bus import MessageBus
+from dbus_next.constants import MessageType
+from dbus_next.errors import DBusError
+from dbus_next.message import Message
 
 if TYPE_CHECKING:
     from .poller import PullRequest
@@ -43,6 +50,13 @@ _avatar_cache: dict[str, Path] = {}
 # the PR in a browser.  The task reference is stored here so it is not
 # garbage-collected before completion.
 _background_tasks: set[asyncio.Task[None]] = set()
+
+# XDG Desktop Portal D-Bus coordinates.  The portal allows sandboxed
+# processes (systemd services, Flatpak, Snap) to open URLs in the
+# user's default browser without inheriting the caller's restrictions.
+_PORTAL_BUS_NAME = "org.freedesktop.portal.Desktop"
+_PORTAL_OBJECT_PATH = "/org/freedesktop/portal/desktop"
+_PORTAL_INTERFACE = "org.freedesktop.portal.OpenURI"
 
 
 async def _download_avatar(avatar_url: str, session: aiohttp.ClientSession) -> str | None:
@@ -160,7 +174,8 @@ async def _send_notification(
     url:
         Optional URL. When provided, an "Open" action button is added
         to the notification.  If the user clicks it, the URL is opened
-        in the default browser via ``xdg-open``.
+        in the default browser via the XDG Desktop Portal (or
+        ``xdg-open`` as a fallback).
     icon:
         Optional path to an icon file.  Falls back to the generic
         "github" icon name when not provided.
@@ -226,15 +241,81 @@ async def _wait_and_open(proc: asyncio.subprocess.Process, url: str) -> None:
 
 
 async def _open_url(url: str) -> None:
-    """Open *url* in the default browser via xdg-open."""
+    """Open *url* in the default browser.
+
+    Tries the XDG Desktop Portal first (works from sandboxed systemd
+    services), then falls back to ``xdg-open`` for environments where
+    the portal is unavailable (e.g. minimal window managers).
+    """
+    if await _open_url_portal(url):
+        return
+    await _open_url_xdg(url)
+
+
+async def _open_url_portal(url: str) -> bool:
+    """Open *url* via the XDG Desktop Portal over D-Bus.
+
+    Sends a raw D-Bus method call instead of using ``bus.introspect()``
+    + proxy objects.  This avoids a ``dbus-next`` bug where introspecting
+    the portal object fails because other interfaces on that path expose
+    property names with hyphens (e.g. ``power-saver-enabled``), which
+    ``dbus-next`` rejects as invalid member names.
+
+    Returns ``True`` on success, ``False`` on any failure.
+    """
+    bus: MessageBus | None = None
+    try:
+        bus = await MessageBus().connect()
+        msg = Message(
+            destination=_PORTAL_BUS_NAME,
+            path=_PORTAL_OBJECT_PATH,
+            interface=_PORTAL_INTERFACE,
+            member="OpenURI",
+            signature="ssa{sv}",
+            body=["", url, {}],
+        )
+        reply = await bus.call(msg)
+        if reply is None:
+            logger.debug("XDG Desktop Portal returned no reply for %s", url)
+            return False
+        if reply.message_type == MessageType.ERROR:
+            logger.debug(
+                "XDG Desktop Portal error for %s: %s %s",
+                url,
+                reply.error_name,
+                reply.body,
+            )
+            return False
+        logger.debug("Opened URL via XDG Desktop Portal: %s", url)
+    except (DBusError, OSError, ValueError, TimeoutError) as exc:
+        logger.debug("XDG Desktop Portal unavailable, will try xdg-open: %s", exc)
+        return False
+    else:
+        return True
+    finally:
+        if bus is not None:
+            bus.disconnect()  # type: ignore[no-untyped-call]
+
+
+async def _open_url_xdg(url: str) -> None:
+    """Open *url* via ``xdg-open`` as a fallback."""
     try:
         proc = await asyncio.create_subprocess_exec(
             "xdg-open",
             url,
             stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
         )
-        await proc.communicate()
+        _, stderr = await proc.communicate()
+        if proc.returncode != 0:
+            logger.warning(
+                "xdg-open failed (exit %d) for URL %s: %s",
+                proc.returncode,
+                url,
+                stderr.decode().strip(),
+            )
+        else:
+            logger.debug("Opened URL via xdg-open: %s", url)
     except FileNotFoundError:
         logger.warning("xdg-open not found. Cannot open URL: %s", url)
     except OSError:

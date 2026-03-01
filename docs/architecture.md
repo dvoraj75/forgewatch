@@ -96,8 +96,11 @@ See [modules/dbus_service.md](modules/dbus_service.md) for the full API referenc
 Sends desktop notifications via `notify-send` (subprocess call). For small
 batches (<= configurable threshold, default 3), each PR gets its own
 notification with the author's avatar as the icon and a clickable "Open" action
-that opens the PR in the default browser via `xdg-open`. For larger batches, a
-single summary notification is sent. Avatars are downloaded from GitHub and
+that opens the PR in the default browser via the XDG Desktop Portal (D-Bus),
+falling back to `xdg-open` when the portal is unavailable. The portal approach
+is used because `xdg-open` fails silently inside the systemd sandbox when the
+browser is a Snap package. For larger batches, a single summary notification is
+sent. Avatars are downloaded from GitHub and
 cached on disk. A shared `aiohttp.ClientSession` is reused for all avatar
 downloads within a notification batch.
 

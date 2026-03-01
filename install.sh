@@ -257,7 +257,8 @@ systemctl --user status "${SERVICE_NAME}" --no-pager --lines=5 || true
 echo
 info "Useful commands:"
 echo "  systemctl --user status github-monitor    # check status"
-echo "  systemctl --user restart github-monitor   # restart after config changes"
+echo "  systemctl --user reload github-monitor    # reload config (no restart needed)"
+echo "  systemctl --user restart github-monitor   # full restart"
 echo "  journalctl --user -u github-monitor -f    # follow logs"
 echo "  systemctl --user stop github-monitor      # stop the service"
 echo "  ./uninstall.sh                            # uninstall everything"
