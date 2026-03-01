@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 ExecStart=%h/.local/bin/github-monitor
+ExecReload=kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=10
 Environment=GITHUB_TOKEN=
