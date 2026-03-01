@@ -49,7 +49,7 @@ class TestMainHappyPath:
             main()
 
         mock_load.assert_called_once_with(None)
-        mock_daemon_cls.assert_called_once_with(config)
+        mock_daemon_cls.assert_called_once_with(config, None)
         mock_daemon_instance.start.assert_awaited_once()
         mock_daemon_instance.stop.assert_awaited_once()
 

@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import signal
 from datetime import UTC, datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from github_monitor.config import Config
@@ -94,6 +95,15 @@ class TestDaemonInit:
         assert daemon._first_poll is True
         assert daemon.bus is None
         assert daemon.interface is None
+
+    def test_config_path_defaults_to_none(self) -> None:
+        daemon = Daemon(_make_config())
+        assert daemon.config_path is None
+
+    def test_stores_config_path(self) -> None:
+        path = Path("/custom/config.toml")
+        daemon = Daemon(_make_config(), config_path=path)
+        assert daemon.config_path is path
 
     def test_client_receives_config_values(self) -> None:
         config = _make_config(
@@ -283,9 +293,10 @@ class TestReloadConfig:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config):
+        with patch("github_monitor.daemon.load_config", return_value=new_config) as mock_load:
             await daemon._reload_config()
 
+        mock_load.assert_called_once_with(None)
         assert daemon.config is new_config
         daemon.client.close.assert_awaited_once()
         assert daemon.client._token == "ghp_new_token"
@@ -333,6 +344,29 @@ class TestReloadConfig:
         mock_logger.exception.assert_called_once()
         # Config should remain unchanged on failure
         assert daemon.config is original_config
+
+    async def test_reload_passes_config_path_to_load_config(self) -> None:
+        custom_path = Path("/etc/github-monitor/config.toml")
+        daemon = Daemon(_make_config(), config_path=custom_path)
+        new_config = _make_config(github_token="ghp_reloaded")
+        daemon.client.close = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.start = AsyncMock()  # type: ignore[method-assign]
+
+        with patch("github_monitor.daemon.load_config", return_value=new_config) as mock_load:
+            await daemon._reload_config()
+
+        mock_load.assert_called_once_with(custom_path)
+
+    async def test_reload_passes_none_when_no_config_path(self) -> None:
+        daemon = Daemon(_make_config())
+        new_config = _make_config(github_token="ghp_reloaded")
+        daemon.client.close = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.start = AsyncMock()  # type: ignore[method-assign]
+
+        with patch("github_monitor.daemon.load_config", return_value=new_config) as mock_load:
+            await daemon._reload_config()
+
+        mock_load.assert_called_once_with(None)
 
 
 # ---------------------------------------------------------------------------

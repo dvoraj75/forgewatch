@@ -43,7 +43,7 @@ def main() -> None:
 
     config_path = Path(args.config) if args.config else None
     config = load_config(config_path)
-    daemon = Daemon(config)
+    daemon = Daemon(config, config_path)
 
     async def run() -> None:
         try:

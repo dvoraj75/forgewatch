@@ -19,6 +19,8 @@ from .poller import GitHubClient
 from .store import PRStore
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from dbus_next.aio.message_bus import MessageBus
 
     from .config import Config
@@ -40,8 +42,9 @@ class Daemon:
     3. ``stop()`` — close the HTTP session and disconnect from D-Bus.
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, config_path: Path | None = None) -> None:
         self.config = config
+        self.config_path = config_path
         self.store = PRStore()
         self.client = GitHubClient(
             token=config.github_token,
@@ -169,7 +172,7 @@ class Daemon:
         immediately.
         """
         try:
-            self.config = load_config()
+            self.config = load_config(self.config_path)
             await self.client.close()
             self.client.update_config(
                 token=self.config.github_token,
