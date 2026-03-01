@@ -261,4 +261,5 @@ echo "  systemctl --user reload github-monitor    # reload config (no restart ne
 echo "  systemctl --user restart github-monitor   # full restart"
 echo "  journalctl --user -u github-monitor -f    # follow logs"
 echo "  systemctl --user stop github-monitor      # stop the service"
+echo "  ./update.sh                               # update to latest version"
 echo "  ./uninstall.sh                            # uninstall everything"

@@ -143,6 +143,9 @@ uv run mypy github_monitor
 | `config.example.toml` | Template config with placeholder values. Safe to commit. |
 | `pyproject.toml` | Build config, dependencies, tool settings (ruff, mypy, pytest). |
 | `systemd/github-monitor.service` | Systemd user unit file. |
+| `install.sh` | Automated installer — prereqs, uv tool install, config wizard, systemd setup. |
+| `update.sh` | Update script — git pull (with dirty/branch checks), reinstall, restart service. |
+| `uninstall.sh` | Uninstall script — stop service, remove unit, uninstall package, optionally remove config. |
 | `docs/` | Architecture, configuration, development, and module documentation. |
 
 ## Common Modification Patterns

@@ -90,6 +90,18 @@ access to the filesystem.
 
 ## Installation
 
+### Automated (recommended)
+
+The easiest way to install is with the included install script, which handles
+prerequisites, package installation, interactive configuration, and systemd
+setup:
+
+```bash
+./install.sh
+```
+
+### Manual
+
 ```bash
 # 1. Create the systemd user directory (if it doesn't exist)
 mkdir -p ~/.config/systemd/user/
@@ -197,6 +209,30 @@ state.
 
 ```bash
 systemctl --user disable github-monitor
+```
+
+## Updating
+
+To update to the latest version:
+
+```bash
+./update.sh
+```
+
+This pulls the latest code, re-installs the package, updates the systemd
+service file, and restarts the daemon. Your configuration is never touched.
+
+The script is git-aware -- it skips `git pull` if you have uncommitted changes
+or are on a non-main branch (unless you confirm).
+
+To update manually instead:
+
+```bash
+git pull
+uv tool install . --force
+cp systemd/github-monitor.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user restart github-monitor
 ```
 
 ## Troubleshooting

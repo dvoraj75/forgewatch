@@ -124,9 +124,24 @@ uv run github-monitor -c /path/to/config.toml
 uv run github-monitor -v
 ```
 
-### Systemd user service (optional)
+### Automated install / update / uninstall
 
-To run github-monitor as a background service that starts on login:
+The project includes scripts for managing github-monitor as a systemd user
+service:
+
+```bash
+./install.sh     # interactive install (prereqs, package, config, systemd service)
+./update.sh      # pull latest + re-install package + restart service
+./uninstall.sh   # stop service, remove package, optionally remove config
+```
+
+The install script is interactive and walks you through configuration.
+The update script is git-aware -- it will skip `git pull` if you have
+uncommitted changes or are on a non-main branch (unless you confirm).
+
+### Systemd user service (manual setup)
+
+If you prefer to set things up manually instead of using the install script:
 
 ```bash
 # Install the service
@@ -150,6 +165,9 @@ configuration, security hardening details, and troubleshooting.
 github-monitor/
 ├── config.example.toml          # Example configuration file
 ├── pyproject.toml               # Project metadata, deps, tool config
+├── install.sh                   # Automated installer script
+├── update.sh                    # Update script (pull + reinstall + restart)
+├── uninstall.sh                 # Uninstall script
 ├── plan.md                      # Architecture design document
 ├── implementation.md            # Step-by-step implementation guide
 │
