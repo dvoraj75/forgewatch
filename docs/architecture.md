@@ -52,11 +52,12 @@ See [modules/config.md](modules/config.md) for the full API reference.
 ### Poller (`poller.py`)
 
 An async HTTP client that queries the GitHub Search Issues API for open PRs
-where the user is either a requested reviewer or an assignee. Handles
+where the user is either a requested reviewer or an assignee. The API base URL
+is configurable to support GitHub Enterprise Server installations. Handles
 pagination (Link header), rate limiting (X-RateLimit headers with preemptive
-waiting), retries with exponential backoff on 5xx errors, and proper error
-classification (401 -> `AuthError`, 403 -> rate limit retry, network errors ->
-graceful degradation).
+waiting), retries with exponential backoff on 5xx errors (configurable retry
+count), and proper error classification (401 -> `AuthError`, 403 -> rate limit
+retry, network errors -> graceful degradation).
 
 The two search queries are run concurrently via `asyncio.gather`, and results
 are deduplicated by PR URL, with flags merged when a PR appears in both
@@ -93,8 +94,12 @@ See [modules/dbus_service.md](modules/dbus_service.md) for the full API referenc
 ### Notifier (`notifier.py`)
 
 Sends desktop notifications via `notify-send` (subprocess call). For small
-batches (<=3 new PRs), each PR gets its own notification. For larger batches, a
-single summary notification is sent.
+batches (<= configurable threshold, default 3), each PR gets its own
+notification with the author's avatar as the icon and a clickable "Open" action
+that opens the PR in the default browser via `xdg-open`. For larger batches, a
+single summary notification is sent. Avatars are downloaded from GitHub and
+cached on disk. A shared `aiohttp.ClientSession` is reused for all avatar
+downloads within a notification batch.
 
 See [modules/notifier.md](modules/notifier.md) for the full API reference.
 
@@ -107,10 +112,13 @@ SIGINT for shutdown, SIGHUP for config reload).
 
 The poll loop uses `asyncio.Event.wait(timeout=poll_interval)` instead of
 `asyncio.sleep` so that shutdown is immediate rather than waiting for the current
-sleep to finish. First-poll notifications are suppressed to avoid notification
-spam on startup (the D-Bus signal still fires so panel plugins can populate
-state). On SIGHUP, the daemon reloads the config file and restarts the HTTP
-session to pick up new token/headers.
+sleep to finish. First-poll notifications are suppressed by default to avoid
+notification spam on startup (configurable via `notify_on_first_poll`). The D-Bus
+signal still fires so panel plugins can populate state. D-Bus setup is
+conditional on `dbus_enabled`, allowing the daemon to run in environments where
+D-Bus is unavailable. On SIGHUP, the daemon reloads the config file (respecting
+the original `-c` path), applies the new log level immediately, and restarts the
+HTTP session to pick up new token/headers.
 
 See [modules/daemon.md](modules/daemon.md) for the full API reference.
 
@@ -127,8 +135,8 @@ A single poll cycle follows this path:
 3. State Store.update(prs)
    ├── Compute diff (new, updated, closed)
    └── Replace internal state
-4. If diff has new PRs:
-   └── Notifier.notify_new_prs(diff.new)
+4. If diff has new PRs (and notifications enabled):
+   └── Notifier.notify_new_prs(diff.new, threshold=..., urgency=...)
 5. If diff is non-empty:
    └── D-Bus signal: PullRequestsChanged
 ```
@@ -174,7 +182,7 @@ is the natural fit: `aiohttp` for HTTP, `dbus-next` for D-Bus, and
 
 ### Why `dataclass + tomllib` instead of pydantic?
 
-For a small PoC with 4 config fields and a handful of data classes, stdlib
+For a small project with a dozen config fields and a handful of data classes, stdlib
 `dataclass` + `tomllib` keeps the dependency footprint minimal. `pydantic` or
 `pydantic-settings` could replace this in a future version if the config
 grows more complex.
@@ -194,8 +202,8 @@ The system is designed to be resilient to transient failures:
 
 | Error | Behavior |
 |---|---|
-| Network error | Retry up to 3 times with exponential backoff, then return empty |
-| HTTP 5xx | Retry up to 3 times with exponential backoff, then return empty |
+| Network error | Retry up to `max_retries` times (configurable, default 3) with exponential backoff, then return empty |
+| HTTP 5xx | Retry up to `max_retries` times (configurable, default 3) with exponential backoff, then return empty |
 | HTTP 401 | Raise `AuthError` immediately (bad token, no point retrying) |
 | HTTP 403 | Respect `Retry-After` header, retry once, then return empty |
 | Rate limit exhausted | Preemptively wait until reset time before making request |

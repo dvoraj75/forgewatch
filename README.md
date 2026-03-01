@@ -9,10 +9,12 @@ notifications when new PRs arrive.
 ## Features
 
 - **Live PR monitoring** -- polls GitHub Search API for PRs assigned to you or requesting your review
-- **Desktop notifications** -- individual notifications for 1-3 new PRs, summary for more; includes author avatars and clickable links
-- **D-Bus interface** -- query current PR state, trigger manual refresh, subscribe to change signals
-- **Systemd integration** -- runs as a user service with security hardening
-- **Resilient** -- exponential backoff, rate limit handling, graceful shutdown via signals (SIGTERM, SIGHUP for config reload)
+- **Desktop notifications** -- individual notifications for small batches with author avatars and clickable links; summary for larger batches (configurable threshold)
+- **D-Bus interface** -- query current PR state, trigger manual refresh, subscribe to change signals (can be disabled)
+- **GitHub Enterprise support** -- configurable API base URL
+- **Systemd integration** -- runs as a user service with security hardening and `systemctl reload` support
+- **Resilient** -- exponential backoff with configurable retries, rate limit handling, graceful shutdown via signals (SIGTERM, SIGHUP for config reload)
+- **Runtime configurable** -- log level, notification behaviour, D-Bus toggle, and more can be changed via config reload
 
 ![Notification screenshot](docs/screenshot.png)
 
@@ -86,6 +88,15 @@ github_token    = "ghp_your_personal_access_token"
 github_username = "your-github-username"
 poll_interval   = 300       # seconds (minimum 30)
 repos           = []        # empty = all repos, or ["owner/repo1", "owner/repo2"]
+
+# Optional settings (shown with defaults):
+# log_level              = "info"       # debug, info, warning, error
+# notifications_enabled  = true         # toggle desktop notifications
+# dbus_enabled           = true         # toggle D-Bus interface
+# github_base_url        = "https://api.github.com"  # for GitHub Enterprise
+# max_retries            = 3            # HTTP retries for 5xx errors
+# notification_threshold = 3            # individual vs. summary cutoff
+# notification_urgency   = "normal"     # low, normal, critical
 ```
 
 The token can also be provided via the `GITHUB_TOKEN` environment variable,
@@ -156,13 +167,13 @@ github-monitor/
 │   └── github-monitor.service   # Systemd user service unit file
 │
 ├── tests/
-│   ├── test_config.py           # 17 tests for config module
-│   ├── test_poller.py           # 21 tests for poller module
-│   ├── test_store.py            # 24 tests for store module
-│   ├── test_dbus_service.py     # 28 tests for D-Bus service module
-│   ├── test_notifier.py         # 24 tests for notifier module
-│   ├── test_daemon.py           # 30 tests for daemon module
-│   └── test_main.py             # 7 tests for __main__ module
+│   ├── test_config.py           # Tests for config module
+│   ├── test_poller.py           # Tests for poller module
+│   ├── test_store.py            # Tests for store module
+│   ├── test_dbus_service.py     # Tests for D-Bus service module
+│   ├── test_notifier.py         # Tests for notifier module
+│   ├── test_daemon.py           # Tests for daemon module
+│   └── test_main.py             # Tests for __main__ module
 │
 └── docs/                        # Detailed documentation
     ├── architecture.md
@@ -216,7 +227,8 @@ details, and project structure notes.
 | `tomllib` (stdlib) | TOML config parsing |
 | `notify-send` (system) | Desktop notifications |
 
-Dev-only: `pytest`, `pytest-asyncio`, `aioresponses`, `ruff`, `mypy`.
+Dev-only: `pytest`, `pytest-asyncio`, `pytest-xdist`, `pytest-cov`,
+`aioresponses`, `ruff`, `mypy`, `pre-commit`.
 
 ## License
 

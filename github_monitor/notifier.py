@@ -178,7 +178,7 @@ async def _send_notification(
     if url:
         cmd.append("--action=open=Open")
 
-    cmd.extend([summary, body])
+    cmd.extend(["--", summary, body])
 
     try:
         proc = await asyncio.create_subprocess_exec(

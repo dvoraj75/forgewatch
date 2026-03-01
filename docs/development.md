@@ -23,7 +23,7 @@ ruff, mypy, etc.).
 
 ```
 github_monitor/          # Main package
-├── __init__.py          # __version__ = "0.1.0"
+├── __init__.py          # __version__ = "1.1.0"
 ├── __main__.py          # python -m entry point
 ├── config.py            # Config loading + validation
 ├── poller.py            # GitHub API client
@@ -36,13 +36,13 @@ systemd/
 └── github-monitor.service  # Systemd user service unit
 
 tests/
-├── test_config.py       # 17 tests
-├── test_poller.py       # 21 tests
-├── test_store.py        # 24 tests
-├── test_dbus_service.py # 28 tests
-├── test_notifier.py     # 24 tests
-├── test_daemon.py       # 30 tests
-└── test_main.py         # 7 tests
+├── test_config.py       # Config loading and validation
+├── test_poller.py       # GitHub API client
+├── test_store.py        # State store and diffing
+├── test_dbus_service.py # D-Bus interface
+├── test_notifier.py     # Desktop notifications
+├── test_daemon.py       # Daemon lifecycle and integration
+└── test_main.py         # CLI entry point
 ```
 
 ## Running checks
@@ -60,7 +60,7 @@ uv run ruff format .
 uv run mypy .
 
 # Tests
-uv run pytest            # 151 tests, ~8 seconds
+uv run pytest            # all tests, parallel with coverage
 uv run pytest -v         # verbose output
 uv run pytest -x         # stop on first failure
 ```
@@ -81,7 +81,7 @@ All tool configuration lives in `pyproject.toml`. There are no separate
 ```toml
 [tool.ruff]
 target-version = "py313"
-line-length = 88
+line-length = 120
 
 [tool.ruff.lint]
 select = ["ALL"]
@@ -105,10 +105,13 @@ Test files get relaxed rules:
     "S101",    # assert usage is fine in tests
     "S105",    # hardcoded passwords are test fixtures
     "S106",    # hardcoded passwords in function args
+    "S108",    # hardcoded temp file paths are fine in tests
     "PLR2004", # magic values are fine in tests
+    "PLC0415", # imports inside test functions for cache access
     "SLF001",  # private member access is fine in tests
     "INP001",  # tests don't need __init__.py
     "ARG001",  # unused callback args (aioresponses callbacks)
+    "ERA001",  # commented-out code used as section headers in tests
 ]
 ```
 
@@ -131,10 +134,14 @@ Every function must have complete type annotations.
 ```toml
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+addopts = "-ra -v --cov=github_monitor --cov-report=term -n auto"
 ```
 
 `asyncio_mode = "auto"` means async test functions are automatically detected
-and run in an event loop — no need for `@pytest.mark.asyncio` decorators.
+and run in an event loop -- no need for `@pytest.mark.asyncio` decorators.
+
+Tests run in parallel via `pytest-xdist` (`-n auto`) with coverage reporting
+via `pytest-cov` (`--cov=github_monitor`).
 
 ## Build system
 
@@ -167,6 +174,9 @@ dev = [
     "aioresponses>=0.7",
     "ruff>=0.8",
     "mypy>=1.13",
+    "pytest-xdist>=3.8.0",
+    "pytest-cov>=7.0.0",
+    "pre-commit>=4.5.1",
 ]
 ```
 
@@ -274,3 +284,31 @@ Tests are organized by module and by functional area within each module:
 
 Each test class groups related tests. Async test methods are auto-detected
 by pytest-asyncio (no decorator needed).
+
+## Continuous integration
+
+The project uses GitHub Actions for CI (`.github/workflows/ci.yml`). On every
+push and pull request to `main`, the following checks run:
+
+1. **Lint** -- `ruff check .`
+2. **Format** -- `ruff format --check .`
+3. **Type check** -- `mypy .`
+4. **Tests** -- `pytest`
+
+All checks must pass before merging.
+
+## Pre-commit hooks
+
+The project includes a `.pre-commit-config.yaml` with:
+
+- **ruff** -- lint and format checks (via `ruff-pre-commit`)
+- **mypy** -- type checking
+
+To set up pre-commit hooks locally:
+
+```bash
+uv run pre-commit install       # install hooks
+uv run pre-commit run --all     # run on all files
+```
+
+Once installed, hooks run automatically on every `git commit`.

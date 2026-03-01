@@ -17,6 +17,8 @@ Internal constants (prefixed with `_`):
 |---|---|---|---|
 | `_REPO_PATTERN` | `re.Pattern` | `^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$` | Regex for validating `owner/name` repo format |
 | `_MIN_POLL_INTERVAL` | `int` | `30` | Minimum allowed poll interval in seconds |
+| `_VALID_LOG_LEVELS` | `frozenset[str]` | `{"debug", "info", "warning", "error"}` | Allowed values for `log_level` |
+| `_VALID_URGENCIES` | `frozenset[str]` | `{"low", "normal", "critical"}` | Allowed values for `notification_urgency` |
 
 ## `ConfigError`
 
@@ -31,12 +33,18 @@ a `ConfigError` with a human-readable message describing what went wrong.
 
 - `"Config file not found: /path/to/config.toml"`
 - `"Invalid TOML in /path/to/config.toml: ..."`
-- `"github_token is required"`
+- `"github_token is required (set in config or GITHUB_TOKEN env var)"`
 - `"github_username is required"`
 - `"poll_interval must be an integer, got str"`
-- `"poll_interval must be >= 30 seconds, got 10"`
+- `"poll_interval must be >= 30, got 10"`
 - `"repos must be a list"`
-- `"Invalid repo format: 'not-valid' — expected 'owner/name'"`
+- `"Invalid repo format: 'not-valid' (expected 'owner/name')"`
+- `"log_level must be one of ['debug', 'error', 'info', 'warning'], got 'verbose'"`
+- `"notifications_enabled must be a boolean, got str"`
+- `"github_base_url must start with http:// or https://, got 'ftp://...'"`
+- `"max_retries must be >= 0, got -1"`
+- `"notification_threshold must be >= 1, got 0"`
+- `"notification_urgency must be one of ['critical', 'low', 'normal'], got 'extreme'"`
 
 ## `Config`
 
@@ -47,6 +55,14 @@ class Config:
     github_username: str
     poll_interval: int = 300
     repos: list[str] = field(default_factory=list)
+    log_level: str = "info"
+    notify_on_first_poll: bool = False
+    notifications_enabled: bool = True
+    dbus_enabled: bool = True
+    github_base_url: str = "https://api.github.com"
+    max_retries: int = 3
+    notification_threshold: int = 3
+    notification_urgency: str = "normal"
 ```
 
 An immutable (frozen) dataclass holding validated configuration values.
@@ -57,6 +73,14 @@ An immutable (frozen) dataclass holding validated configuration values.
 | `github_username` | `str` | (required) | GitHub username for search queries |
 | `poll_interval` | `int` | `300` | Poll interval in seconds (>= 30) |
 | `repos` | `list[str]` | `[]` | Repo filter (`owner/name` format); empty = all |
+| `log_level` | `str` | `"info"` | Log level: `debug`, `info`, `warning`, `error` |
+| `notify_on_first_poll` | `bool` | `False` | Notify for PRs found on first poll |
+| `notifications_enabled` | `bool` | `True` | Enable/disable desktop notifications |
+| `dbus_enabled` | `bool` | `True` | Enable/disable D-Bus interface |
+| `github_base_url` | `str` | `"https://api.github.com"` | GitHub API base URL (for GHE) |
+| `max_retries` | `int` | `3` | Max HTTP retries for 5xx errors (>= 0) |
+| `notification_threshold` | `int` | `3` | Individual vs. summary notification cutoff (>= 1) |
+| `notification_urgency` | `str` | `"normal"` | Notification urgency: `low`, `normal`, `critical` |
 
 The dataclass is frozen, so fields cannot be modified after creation:
 
@@ -85,7 +109,7 @@ A `Config` instance with all fields validated.
 
 ### Raises
 
-- `ConfigError` — if the config file is not found, contains invalid TOML, or
+- `ConfigError` -- if the config file is not found, contains invalid TOML, or
   fails validation
 
 ### Behavior
@@ -125,7 +149,44 @@ Resolves the config file path using three-tier precedence:
 
 ### Raises
 
-- `ConfigError` — if the resolved path does not exist
+- `ConfigError` -- if the resolved path does not exist
+
+## Validation helpers (internal)
+
+Validation is split into reusable helper functions:
+
+### `_require_str(raw, key, error_msg) -> str`
+
+Extracts a required non-empty string field. Raises `ConfigError` with the
+provided message if the value is missing, empty, or not a string.
+
+### `_validate_bool(raw, key, *, default) -> bool`
+
+Extracts an optional boolean field with a default value. Raises `ConfigError`
+if the value is present but not a boolean.
+
+### `_validate_int_min(raw, key, *, default, minimum) -> int`
+
+Extracts an optional integer field with a minimum bound. Raises `ConfigError`
+if the value is not an integer or is below the minimum.
+
+### `_validate_choice(raw, key, *, default, choices) -> str`
+
+Extracts an optional string field validated against a set of allowed values.
+The value is normalised to lowercase before comparison. Raises `ConfigError`
+if the value is not a string or not in the allowed set.
+
+### `_validate_base_url(raw) -> str`
+
+Extracts and validates the `github_base_url` field. Must start with `http://`
+or `https://`. Trailing slashes are stripped. Raises `ConfigError` on invalid
+values.
+
+### `_validate_repos(raw) -> list[str]`
+
+Extracts and validates the `repos` list. Each entry must be a string matching
+the `_REPO_PATTERN` regex (`owner/name` format). Raises `ConfigError` on
+invalid values.
 
 ## `_validate()` (internal)
 
@@ -133,23 +194,35 @@ Resolves the config file path using three-tier precedence:
 def _validate(raw: dict[str, object]) -> Config:
 ```
 
-Validates the raw TOML dict and returns a `Config` instance.
+Validates the raw TOML dict and returns a `Config` instance. Delegates to the
+individual validation helpers above.
 
 ### Validation rules
 
-1. `github_token` — must be a `str` and non-empty after stripping
-2. `github_username` — must be a `str` and non-empty after stripping
-3. `poll_interval` — must be an `int` and >= `_MIN_POLL_INTERVAL` (30)
-4. `repos` — must be a `list`; each element must be a `str` matching
-   `_REPO_PATTERN`
+1. `github_token` -- must be a `str` and non-empty (via `_require_str`)
+2. `github_username` -- must be a `str` and non-empty (via `_require_str`)
+3. `poll_interval` -- must be an `int` >= 30 (via `_validate_int_min`)
+4. `repos` -- must be a `list` of strings matching `_REPO_PATTERN` (via `_validate_repos`)
+5. `log_level` -- must be one of `_VALID_LOG_LEVELS` (via `_validate_choice`)
+6. `notify_on_first_poll` -- must be a `bool` (via `_validate_bool`)
+7. `notifications_enabled` -- must be a `bool` (via `_validate_bool`)
+8. `dbus_enabled` -- must be a `bool` (via `_validate_bool`)
+9. `github_base_url` -- must start with `http://` or `https://` (via `_validate_base_url`)
+10. `max_retries` -- must be an `int` >= 0 (via `_validate_int_min`)
+11. `notification_threshold` -- must be an `int` >= 1 (via `_validate_int_min`)
+12. `notification_urgency` -- must be one of `_VALID_URGENCIES` (via `_validate_choice`)
 
 ## Tests
 
-17 tests in `tests/test_config.py` covering:
+Tests in `tests/test_config.py` covering:
 
 - Happy path (valid config, minimal config, string path)
 - Environment variable overrides (`GITHUB_TOKEN`, `GITHUB_MONITOR_CONFIG`, token
   from env when missing in file)
 - Validation errors (missing file, invalid TOML, missing token/username, invalid
   poll_interval type/value, invalid repo format, repos not a list)
+- New config fields (log_level, notify_on_first_poll, notifications_enabled,
+  dbus_enabled, github_base_url, max_retries, notification_threshold,
+  notification_urgency) -- defaults, valid values, invalid types, edge cases
+  (case-insensitivity, trailing slash stripping, zero retries)
 - Edge cases (empty token/username strings, boundary poll_interval = 30)

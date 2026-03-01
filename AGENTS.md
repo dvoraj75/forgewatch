@@ -49,6 +49,8 @@ daemon.py            Orchestrator — wires poller, store, D-Bus, notifier
 - **D-Bus**: `dbus-next` (async D-Bus client/server)
 - **Desktop notifications**: `notify-send` (from `libnotify-bin`)
 - **Build backend**: `hatchling`
+- **CI**: GitHub Actions (lint, format, type check, tests on push/PR)
+- **Pre-commit hooks**: ruff + mypy via `pre-commit`
 
 ## Build & Run
 
@@ -174,6 +176,6 @@ uv run mypy github_monitor
 
 ## Security Notes
 
-- `config.toml` contains a real GitHub personal access token — it should be in `.gitignore` (currently it is NOT gitignored; this is a known issue)
+- `config.toml` contains a real GitHub personal access token — it is listed in `.gitignore` and must never be committed
 - The token can alternatively be provided via `GITHUB_TOKEN` environment variable
 - The systemd service file uses `ProtectSystem=strict` and `ProtectHome=read-only` for security hardening

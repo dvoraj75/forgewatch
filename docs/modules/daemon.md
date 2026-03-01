@@ -13,22 +13,24 @@ The central class that manages the daemon lifecycle.
 ### Constructor
 
 ```python
-Daemon(config: Config)
+Daemon(config: Config, config_path: Path | None = None)
 ```
 
-| Parameter | Type | Description |
-|---|---|---|
-| `config` | `Config` | Validated configuration (from `load_config()`) |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `config` | `Config` | (required) | Validated configuration (from `load_config()`) |
+| `config_path` | `Path \| None` | `None` | Original config file path (used on SIGHUP reload to re-read the same file) |
 
 Creates the following internal components:
 
 | Attribute | Type | Description |
 |---|---|---|
-| `config` | `Config` | Current configuration (mutable — updated on SIGHUP reload) |
+| `config` | `Config` | Current configuration (reassigned on SIGHUP reload) |
+| `config_path` | `Path \| None` | Config file path passed at construction (used by `_reload_config()`) |
 | `store` | `PRStore` | In-memory state store for tracked PRs |
-| `client` | `GitHubClient` | Async GitHub API client |
-| `bus` | `MessageBus \| None` | D-Bus connection (set during `start()`) |
-| `interface` | `GithubMonitorInterface \| None` | D-Bus interface (set during `start()`) |
+| `client` | `GitHubClient` | Async GitHub API client (initialized with `base_url` and `max_retries` from config) |
+| `bus` | `MessageBus \| None` | D-Bus connection (set during `start()` if D-Bus is enabled) |
+| `interface` | `GithubMonitorInterface \| None` | D-Bus interface (set during `start()` if D-Bus is enabled) |
 
 ### `async start() -> None`
 
@@ -36,14 +38,18 @@ Initialise all components and enter the poll loop. This method blocks until
 a shutdown signal is received. The startup sequence is:
 
 1. Start the GitHub client (creates an `aiohttp` session)
-2. Set up the D-Bus service (connect, export interface, request bus name)
+2. Set up the D-Bus service (if `config.dbus_enabled` is `True`)
 3. Register Unix signal handlers (`SIGTERM`, `SIGINT`, `SIGHUP`)
 4. Enter the poll loop
+
+If `config.dbus_enabled` is `False`, the D-Bus setup is skipped entirely and
+the daemon runs without a D-Bus interface. This is useful for headless setups,
+containers, or SSH sessions where D-Bus is unavailable.
 
 ### `async stop() -> None`
 
 Clean shutdown: close the HTTP session and disconnect from D-Bus. Should
-always be called after `start()` returns — typically in a `try/finally` block.
+always be called after `start()` returns -- typically in a `try/finally` block.
 
 ### `async _poll_loop() -> None`
 
@@ -58,15 +64,28 @@ SIGINT) can wake the loop immediately rather than blocking up to
 
 Single poll cycle:
 
-1. `client.fetch_all()` — fetch all review-requested and assigned PRs
-2. `store.update(prs)` — compute the diff against previous state
-3. If there are new PRs **and** this is not the first poll:
-   `notify_new_prs(diff.new_prs)`
-4. If the diff has any changes: emit `interface.PullRequestsChanged()`
+1. `client.fetch_all()` -- fetch all review-requested and assigned PRs
+2. `store.update(prs)` -- compute the diff against previous state
+3. If there are new PRs **and** notifications are enabled **and** (this is not
+   the first poll **or** `notify_on_first_poll` is `True`):
+   `notify_new_prs(diff.new_prs, threshold=..., urgency=...)`
+4. If the diff has any changes and D-Bus is connected:
+   emit `interface.PullRequestsChanged()`
+
+**Notification control:**
+
+- `config.notifications_enabled` -- master toggle; if `False`, no desktop
+  notifications are sent regardless of other settings
+- `config.notify_on_first_poll` -- if `True`, the first poll cycle can send
+  notifications (default: `False` to avoid a flood on startup)
+- `config.notification_threshold` -- passed to `notify_new_prs()` as the
+  `threshold` parameter (individual vs. summary notification cutoff)
+- `config.notification_urgency` -- passed to `notify_new_prs()` as the
+  `urgency` parameter
 
 **First-poll notification suppression:** On the very first poll cycle, all PRs
-appear as "new" because the store starts empty. To avoid a flood of
-notifications on daemon startup, desktop notifications are suppressed for the
+appear as "new" because the store starts empty. By default
+(`notify_on_first_poll=False`), desktop notifications are suppressed for the
 first cycle. The D-Bus signal is still emitted so that external tools can
 populate their state.
 
@@ -87,10 +106,14 @@ the running event loop (signal handlers cannot be async).
 
 Reload the configuration file and recreate the HTTP session:
 
-1. Call `load_config()` (uses default path resolution)
-2. Close the current aiohttp session
-3. Call `client.update_config()` with the new values
-4. Start a fresh aiohttp session (picks up new token/headers)
+1. Call `load_config(self.config_path)` -- uses the original `-c` path if one
+   was provided at startup, otherwise falls back to default path resolution
+2. Apply the new log level immediately via
+   `logging.getLogger().setLevel(config.log_level)`
+3. Close the current aiohttp session
+4. Call `client.update_config()` with the new token, username, repos, base URL,
+   and max retries
+5. Start a fresh aiohttp session (picks up new token/headers)
 
 If any step fails, the error is logged and the daemon continues with its
 previous configuration.
@@ -107,10 +130,10 @@ Daemon._poll_once()
     │
     ├── store.update(prs)       ──► StateDiff
     │
-    ├── if new PRs (and not first poll):
-    │   └── notify_new_prs()    ──► notify-send
+    ├── if new PRs AND notifications_enabled AND (not first_poll OR notify_on_first_poll):
+    │   └── notify_new_prs(threshold=..., urgency=...)  ──► notify-send
     │
-    └── if any changes:
+    └── if any changes AND dbus connected:
         └── interface.PullRequestsChanged()  ──► D-Bus signal
 ```
 
@@ -118,19 +141,21 @@ Daemon._poll_once()
 
 | Signal | Handler | Behaviour |
 |---|---|---|
-| `SIGTERM` | `_handle_shutdown()` | Graceful shutdown — exits poll loop immediately |
+| `SIGTERM` | `_handle_shutdown()` | Graceful shutdown -- exits poll loop immediately |
 | `SIGINT` | `_handle_shutdown()` | Same as SIGTERM (Ctrl+C in terminal) |
-| `SIGHUP` | `_handle_reload()` | Reload config from disk, recreate HTTP session |
+| `SIGHUP` | `_handle_reload()` | Reload config from disk (respects `-c` path), apply log level, recreate HTTP session |
 
 ## Usage example
 
 ```python
 import asyncio
+from pathlib import Path
 from github_monitor.config import load_config
 from github_monitor.daemon import Daemon
 
-config = load_config()
-daemon = Daemon(config)
+config_path = Path("/path/to/config.toml")
+config = load_config(config_path)
+daemon = Daemon(config, config_path)
 
 async def run():
     try:
@@ -141,7 +166,7 @@ async def run():
 asyncio.run(run())
 ```
 
-This is exactly what `__main__.py` does, with the addition of argument
+This is essentially what `__main__.py` does, with the addition of argument
 parsing and logging setup.
 
 ## CLI entry point (`__main__.py`)
@@ -163,7 +188,10 @@ options:
 | Flag | Description |
 |---|---|
 | `-c`, `--config` | Path to a TOML config file (overrides default path resolution) |
-| `-v`, `--verbose` | Set log level to DEBUG (default: INFO) |
+| `-v`, `--verbose` | Set log level to DEBUG (overrides `config.log_level`) |
+
+The config is loaded before `logging.basicConfig()` so that `config.log_level`
+is applied at startup. The `-v` flag overrides the config log level.
 
 The entry point is registered in `pyproject.toml` as `github-monitor`, so
 after installation it can be invoked directly:
@@ -177,16 +205,24 @@ github-monitor -c /path/to/config.toml  # custom config
 ## Design notes
 
 - The poll loop uses `asyncio.wait_for(event.wait(), timeout=...)` rather
-  than `asyncio.sleep()`. This makes shutdown immediate — the event is set by
+  than `asyncio.sleep()`. This makes shutdown immediate -- the event is set by
   the SIGTERM/SIGINT handler, waking the wait without blocking for the
   remaining poll interval
 - First-poll notification suppression prevents a burst of notifications when
   the daemon starts with many existing review requests. The D-Bus signal still
-  fires so panel plugins can populate their state
+  fires so panel plugins can populate their state. This can be overridden via
+  `notify_on_first_poll = true` in the config
 - SIGHUP config reload closes and restarts the HTTP session to ensure a new
   token (if changed) is picked up in the session headers. The reload is
   scheduled as a task because signal handlers cannot be async
+- Config reload uses `self.config_path` (set at construction time) to ensure
+  the same file is re-read on reload, even when the daemon was started with
+  `-c /custom/path`
+- The log level is applied immediately on reload, allowing runtime log level
+  changes without restarting the daemon
+- D-Bus setup is conditional on `config.dbus_enabled`, allowing the daemon to
+  run in environments where D-Bus is unavailable
 - The `_reload_config()` task stores a reference via `add_done_callback()` to
   prevent garbage collection before completion (ruff RUF006)
-- All poll cycle errors are caught and logged — the daemon never crashes from
+- All poll cycle errors are caught and logged -- the daemon never crashes from
   a transient GitHub API failure

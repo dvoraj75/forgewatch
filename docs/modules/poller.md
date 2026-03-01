@@ -34,6 +34,7 @@ class PullRequest:
     title: str
     repo_full_name: str
     author: str
+    author_avatar_url: str
     number: int
     updated_at: datetime
     review_requested: bool
@@ -49,6 +50,7 @@ An immutable dataclass representing a single GitHub pull request.
 | `title` | `str` | PR title |
 | `repo_full_name` | `str` | Repository in `owner/name` format, extracted from `repository_url` |
 | `author` | `str` | GitHub login of the PR author |
+| `author_avatar_url` | `str` | URL to the author's GitHub avatar image |
 | `number` | `int` | PR number within the repository |
 | `updated_at` | `datetime` | Last updated timestamp (timezone-aware UTC) |
 | `review_requested` | `bool` | `True` if the user was requested as a reviewer |
@@ -87,6 +89,7 @@ Converts a raw GitHub search result item (dict) into a `PullRequest` instance.
 | `title` | `item["title"]` |
 | `repo_full_name` | Last two segments of `item["repository_url"]` (e.g., `owner/repo`) |
 | `author` | `item["user"]["login"]` |
+| `author_avatar_url` | `item["user"]["avatar_url"]` (defaults to `""` if missing) |
 | `number` | `item["number"]` |
 | `updated_at` | `item["updated_at"]` parsed as ISO 8601 datetime |
 
@@ -94,11 +97,11 @@ Converts a raw GitHub search result item (dict) into a `PullRequest` instance.
 
 ```python
 class GitHubClient:
-    BASE_URL = "https://api.github.com"
 ```
 
 The main API client. Manages an `aiohttp.ClientSession`, handles authentication,
-pagination, rate limiting, and retries.
+pagination, rate limiting, and retries. The base URL and retry count are
+configurable via the constructor for GitHub Enterprise Server support.
 
 ### Constructor
 
@@ -108,6 +111,8 @@ def __init__(
     token: str,
     username: str,
     repos: list[str] | None = None,
+    base_url: str = "https://api.github.com",
+    max_retries: int = 3,
 ) -> None:
 ```
 
@@ -116,8 +121,10 @@ def __init__(
 | `token` | `str` | (required) | GitHub PAT for authentication |
 | `username` | `str` | (required) | GitHub username for search query filters |
 | `repos` | `list[str] \| None` | `None` | Optional repo filter; `None` or empty = all repos |
+| `base_url` | `str` | `"https://api.github.com"` | GitHub API base URL (trailing slashes are stripped) |
+| `max_retries` | `int` | `3` | Max retry attempts for 5xx errors |
 
-The constructor does **not** create the HTTP session — call `start()` first.
+The constructor does **not** create the HTTP session -- call `start()` first.
 
 ### Lifecycle methods
 
@@ -152,13 +159,15 @@ def update_config(
     token: str,
     username: str,
     repos: list[str] | None = None,
+    base_url: str = "https://api.github.com",
+    max_retries: int = 3,
 ) -> None:
 ```
 
-Updates the client's token, username, and repo filter. Intended for use when the
-daemon reloads configuration (SIGHUP). Note that the session's authentication
-headers are **not** updated — the session must be recreated for header changes
-to take effect.
+Updates the client's token, username, repo filter, base URL, and max retries.
+Intended for use when the daemon reloads configuration (SIGHUP). Note that
+the session's authentication headers are **not** updated -- the session must
+be recreated for header changes to take effect.
 
 ### Fetch methods
 
@@ -201,8 +210,7 @@ Runs both `fetch_review_requested()` and `fetch_assigned()` concurrently via
 
 **Deduplication:** PRs are keyed by their `url` field. If the same PR appears
 in both queries, the flags are merged so that both `review_requested=True` and
-`assigned=True`. This is done by creating a new `PullRequest` via
-`dataclasses.replace()`.
+`assigned=True`. This is done by creating a new `PullRequest` with merged flags.
 
 **Returns:** A flat list of unique `PullRequest` instances.
 
@@ -247,7 +255,8 @@ search query string. If no repos are configured, returns the query unchanged.
 async def _search_issues(self, query: str) -> list[dict[str, Any]]:
 ```
 
-Core search method. Executes a paginated search against `GET /search/issues`:
+Core search method. Executes a paginated search against `GET /search/issues`
+using the configured `_base_url`:
 
 1. Waits for rate limit if necessary (`_wait_for_rate_limit()`)
 2. Makes the request via `_request_with_retry()`
@@ -266,14 +275,14 @@ async def _request_with_retry(
     self,
     url: str,
     params: dict[str, str] | None = None,
-    max_retries: int = 3,
 ) -> aiohttp.ClientResponse:
 ```
 
-Makes an HTTP GET request with retry logic:
+Makes an HTTP GET request with retry logic. Uses `self._max_retries`
+(configurable via the constructor) to determine the number of retry attempts:
 
-- On **5xx** responses or **network errors** (`aiohttp.ClientError`): retries up
-  to `max_retries` times with exponential backoff (`2^attempt` seconds)
+- On **5xx** responses: retries up to `_max_retries` times with exponential
+  backoff (`2^attempt` seconds)
 - On success or non-5xx error: returns the response immediately
 - If all retries are exhausted: returns the last response (caller handles the
   status code)
@@ -326,8 +335,8 @@ Parses the `Link` HTTP header to extract the URL with `rel="next"`. Returns
 | HTTP 200 | Parse items, continue pagination |
 | HTTP 401 | Raise `AuthError` immediately |
 | HTTP 403 + `Retry-After` | Sleep for the specified duration, retry once |
-| HTTP 5xx | Retry up to 3 times with exponential backoff (2^n seconds) |
-| Network error | Retry up to 3 times with exponential backoff |
+| HTTP 5xx | Retry up to `_max_retries` times with exponential backoff (2^n seconds) |
+| Network error | Retry up to `_max_retries` times with exponential backoff |
 | Rate limit near exhaustion | Preemptively wait until reset before making request |
 | All retries exhausted | Return empty list (log error, don't crash) |
 
@@ -342,6 +351,8 @@ async def main() -> None:
         token="ghp_your_token",
         username="janedoe",
         repos=["myorg/frontend", "myorg/backend"],
+        base_url="https://api.github.com",  # or GHE URL
+        max_retries=3,
     )
     await client.start()
 
@@ -364,18 +375,20 @@ asyncio.run(main())
 
 ## Tests
 
-21 tests in `tests/test_poller.py` organized into 9 test classes:
+Tests in `tests/test_poller.py` organized into test classes:
 
-| Class | Tests | Coverage |
-|---|---|---|
-| `TestParsePr` | 2 | Field parsing, frozen dataclass |
-| `TestClientLifecycle` | 3 | Session creation, close, close-without-start |
-| `TestFetchReviewRequested` | 2 | Returns PRs with correct flags, query includes username |
-| `TestFetchAssigned` | 1 | Returns PRs with correct flags |
-| `TestFetchAll` | 1 | Deduplication, flag merging |
-| `TestRepoFiltering` | 1 | Repo qualifiers in query URL |
-| `TestRateLimiting` | 2 | Header parsing, preemptive waiting |
-| `TestErrorHandling` | 4 | 401, 5xx retries, 403 Retry-After, network errors |
-| `TestPagination` | 1 | Link header following |
-| `TestParseNextLink` | 3 | Next URL extraction, no-next, empty header |
-| `TestUpdateConfig` | 1 | Field updates |
+| Class | Coverage |
+|---|---|
+| `TestParsePr` | Field parsing, frozen dataclass, avatar URL |
+| `TestClientLifecycle` | Session creation, close, close-without-start |
+| `TestFetchReviewRequested` | Returns PRs with correct flags, query includes username |
+| `TestFetchAssigned` | Returns PRs with correct flags |
+| `TestFetchAll` | Deduplication, flag merging |
+| `TestRepoFiltering` | Repo qualifiers in query URL |
+| `TestRateLimiting` | Header parsing, preemptive waiting |
+| `TestErrorHandling` | 401, 5xx retries, 403 Retry-After, network errors |
+| `TestPagination` | Link header following |
+| `TestParseNextLink` | Next URL extraction, no-next, empty header |
+| `TestUpdateConfig` | Field updates including base_url and max_retries |
+| `TestCustomBaseUrl` | Custom base URL used in HTTP requests |
+| `TestConfigurableRetries` | Configurable retry count, zero retries |
