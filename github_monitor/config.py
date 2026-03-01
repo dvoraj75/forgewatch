@@ -14,6 +14,8 @@ CONFIG_PATH = CONFIG_DIR / "config.toml"
 _REPO_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$")
 
 _MIN_POLL_INTERVAL = 30
+_VALID_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
+_VALID_URGENCIES = frozenset({"low", "normal", "critical"})
 
 
 class ConfigError(Exception):
@@ -28,6 +30,14 @@ class Config:
     github_username: str
     poll_interval: int = 300
     repos: list[str] = field(default_factory=list)
+    log_level: str = "info"
+    notify_on_first_poll: bool = False
+    notifications_enabled: bool = True
+    dbus_enabled: bool = True
+    github_base_url: str = "https://api.github.com"
+    max_retries: int = 3
+    notification_threshold: int = 3
+    notification_urgency: str = "normal"
 
 
 def load_config(path: Path | str | None = None) -> Config:
@@ -74,29 +84,68 @@ def _resolve_path(path: Path | str | None) -> Path:
     return CONFIG_PATH
 
 
-def _validate(raw: dict[str, object]) -> Config:
-    """Validate raw TOML dict and return a Config instance."""
-    # Required fields
-    github_token = raw.get("github_token", "")
-    if not github_token or not isinstance(github_token, str):
-        msg = "github_token is required (set in config or GITHUB_TOKEN env var)"
-        raise ConfigError(msg)
+def _require_str(raw: dict[str, object], key: str, error_msg: str) -> str:
+    """Extract a required non-empty string field."""
+    value = raw.get(key, "")
+    if not value or not isinstance(value, str):
+        raise ConfigError(error_msg)
+    return value
 
-    github_username = raw.get("github_username", "")
-    if not github_username or not isinstance(github_username, str):
-        msg = "github_username is required"
-        raise ConfigError(msg)
 
-    # Poll interval
-    poll_interval = raw.get("poll_interval", 300)
-    if not isinstance(poll_interval, int):
-        msg = f"poll_interval must be an integer, got {type(poll_interval).__name__}"
+def _validate_bool(raw: dict[str, object], key: str, *, default: bool) -> bool:
+    """Extract and validate an optional boolean field."""
+    value = raw.get(key, default)
+    if not isinstance(value, bool):
+        msg = f"{key} must be a boolean, got {type(value).__name__}"
         raise ConfigError(msg)
-    if poll_interval < _MIN_POLL_INTERVAL:
-        msg = f"poll_interval must be >= {_MIN_POLL_INTERVAL} seconds, got {poll_interval}"
-        raise ConfigError(msg)
+    return value
 
-    # Repos
+
+def _validate_int_min(raw: dict[str, object], key: str, *, default: int, minimum: int) -> int:
+    """Extract and validate an optional integer field with a minimum bound."""
+    value = raw.get(key, default)
+    if not isinstance(value, int):
+        msg = f"{key} must be an integer, got {type(value).__name__}"
+        raise ConfigError(msg)
+    if value < minimum:
+        msg = f"{key} must be >= {minimum}, got {value}"
+        raise ConfigError(msg)
+    return value
+
+
+def _validate_choice(
+    raw: dict[str, object],
+    key: str,
+    *,
+    default: str,
+    choices: frozenset[str],
+) -> str:
+    """Extract and validate an optional string field against allowed values."""
+    value = raw.get(key, default)
+    if not isinstance(value, str):
+        msg = f"{key} must be a string, got {type(value).__name__}"
+        raise ConfigError(msg)
+    normalised = value.lower()
+    if normalised not in choices:
+        msg = f"{key} must be one of {sorted(choices)}, got {normalised!r}"
+        raise ConfigError(msg)
+    return normalised
+
+
+def _validate_base_url(raw: dict[str, object]) -> str:
+    """Extract and validate the GitHub base URL."""
+    value = raw.get("github_base_url", "https://api.github.com")
+    if not isinstance(value, str):
+        msg = f"github_base_url must be a string, got {type(value).__name__}"
+        raise ConfigError(msg)
+    if not value.startswith(("http://", "https://")):
+        msg = f"github_base_url must start with http:// or https://, got {value!r}"
+        raise ConfigError(msg)
+    return value.rstrip("/")
+
+
+def _validate_repos(raw: dict[str, object]) -> list[str]:
+    """Extract and validate the repos list."""
     repos = raw.get("repos", [])
     if not isinstance(repos, list):
         msg = "repos must be a list"
@@ -105,10 +154,25 @@ def _validate(raw: dict[str, object]) -> Config:
         if not isinstance(repo, str) or not _REPO_PATTERN.match(repo):
             msg = f"Invalid repo format: {repo!r} (expected 'owner/name')"
             raise ConfigError(msg)
+    return repos
+
+
+def _validate(raw: dict[str, object]) -> Config:
+    """Validate raw TOML dict and return a Config instance."""
+    github_token = _require_str(raw, "github_token", "github_token is required (set in config or GITHUB_TOKEN env var)")
+    github_username = _require_str(raw, "github_username", "github_username is required")
 
     return Config(
         github_token=github_token,
         github_username=github_username,
-        poll_interval=poll_interval,
-        repos=repos,
+        poll_interval=_validate_int_min(raw, "poll_interval", default=300, minimum=_MIN_POLL_INTERVAL),
+        repos=_validate_repos(raw),
+        log_level=_validate_choice(raw, "log_level", default="info", choices=_VALID_LOG_LEVELS),
+        notify_on_first_poll=_validate_bool(raw, "notify_on_first_poll", default=False),
+        notifications_enabled=_validate_bool(raw, "notifications_enabled", default=True),
+        dbus_enabled=_validate_bool(raw, "dbus_enabled", default=True),
+        github_base_url=_validate_base_url(raw),
+        max_retries=_validate_int_min(raw, "max_retries", default=3, minimum=0),
+        notification_threshold=_validate_int_min(raw, "notification_threshold", default=3, minimum=1),
+        notification_urgency=_validate_choice(raw, "notification_urgency", default="normal", choices=_VALID_URGENCIES),
     )

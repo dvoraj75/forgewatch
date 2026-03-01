@@ -50,6 +50,8 @@ class Daemon:
             token=config.github_token,
             username=config.github_username,
             repos=config.repos,
+            base_url=config.github_base_url,
+            max_retries=config.max_retries,
         )
         self.bus: MessageBus | None = None
         self.interface: GithubMonitorInterface | None = None
@@ -64,11 +66,14 @@ class Daemon:
         # 1. Start GitHub client (creates aiohttp session)
         await self.client.start()
 
-        # 2. Set up D-Bus
-        self.bus, self.interface = await setup_dbus(
-            self.store,
-            self._poll_once,
-        )
+        # 2. Set up D-Bus (if enabled)
+        if self.config.dbus_enabled:
+            self.bus, self.interface = await setup_dbus(
+                self.store,
+                self._poll_once,
+            )
+        else:
+            logger.info("D-Bus disabled by configuration")
 
         # 3. Register signal handlers
         loop = asyncio.get_running_loop()
@@ -120,8 +125,17 @@ class Daemon:
             prs = await self.client.fetch_all()
             diff = self.store.update(prs)
 
-            if diff.new_prs and not self._first_poll:
-                await notify_new_prs(diff.new_prs)
+            should_notify = (
+                diff.new_prs
+                and self.config.notifications_enabled
+                and (not self._first_poll or self.config.notify_on_first_poll)
+            )
+            if should_notify:
+                await notify_new_prs(
+                    diff.new_prs,
+                    threshold=self.config.notification_threshold,
+                    urgency=self.config.notification_urgency,
+                )
 
             if diff.has_changes and self.interface is not None:
                 self.interface.PullRequestsChanged()
@@ -173,11 +187,19 @@ class Daemon:
         """
         try:
             self.config = load_config(self.config_path)
+
+            # Apply log level change immediately
+            logging.getLogger().setLevel(
+                getattr(logging, self.config.log_level.upper()),
+            )
+
             await self.client.close()
             self.client.update_config(
                 token=self.config.github_token,
                 username=self.config.github_username,
                 repos=self.config.repos,
+                base_url=self.config.github_base_url,
+                max_retries=self.config.max_retries,
             )
             await self.client.start()
             logger.info("Config reloaded successfully")

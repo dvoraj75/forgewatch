@@ -436,3 +436,82 @@ class TestUpdateConfig:
         assert client._token == "new"
         assert client._username == "new_user"
         assert client._repos == ["c/d"]
+
+    def test_updates_base_url_and_max_retries(self) -> None:
+        client = GitHubClient(token="tok", username="user")
+        client.update_config(
+            token="tok",
+            username="user",
+            base_url="https://gh.corp.example.com/api/v3",
+            max_retries=5,
+        )
+        assert client._base_url == "https://gh.corp.example.com/api/v3"
+        assert client._max_retries == 5
+
+    def test_base_url_trailing_slash_stripped(self) -> None:
+        client = GitHubClient(token="tok", username="user")
+        client.update_config(
+            token="tok",
+            username="user",
+            base_url="https://gh.example.com/",
+        )
+        assert client._base_url == "https://gh.example.com"
+
+
+# ---------------------------------------------------------------------------
+# GitHubClient — custom base_url
+# ---------------------------------------------------------------------------
+
+
+class TestCustomBaseUrl:
+    async def test_uses_custom_base_url(self) -> None:
+        custom_url = "https://gh.corp.example.com/api/v3"
+        custom_search_re = re.compile(r"^https://gh\.corp\.example\.com/api/v3/search/issues\b")
+        client = GitHubClient(token="tok", username="user", base_url=custom_url)
+        await client.start()
+
+        captured_urls: list[str] = []
+
+        def callback(url: Any, **kwargs: Any) -> CallbackResult:
+            captured_urls.append(str(url))
+            return CallbackResult(payload=_search_response([]))
+
+        with aioresponses() as m:
+            m.get(custom_search_re, callback=callback)
+            await client.fetch_review_requested()
+
+        assert len(captured_urls) == 1
+        assert captured_urls[0].startswith(custom_url)
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# GitHubClient — custom max_retries
+# ---------------------------------------------------------------------------
+
+
+class TestCustomMaxRetries:
+    async def test_retries_configured_number_of_times(self) -> None:
+        client = GitHubClient(token="tok", username="user", max_retries=2)
+        await client.start()
+
+        with aioresponses() as m:
+            # Only 2 retries configured (not 3)
+            m.get(SEARCH_URL_RE, status=500)
+            m.get(SEARCH_URL_RE, status=500)
+            prs = await client.fetch_review_requested()
+
+        assert prs == []
+        await client.close()
+
+    async def test_zero_retries_returns_immediately(self) -> None:
+        """max_retries=0 means no retries — empty loop."""
+        client = GitHubClient(token="tok", username="user", max_retries=0)
+        await client.start()
+
+        with aioresponses():
+            # No requests should be made (range(0) is empty)
+            prs = await client.fetch_review_requested()
+
+        assert prs == []
+        await client.close()

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import signal
 from datetime import UTC, datetime
 from pathlib import Path
@@ -146,7 +147,11 @@ class TestPollOnce:
 
         with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
-            mock_notify.assert_awaited_once_with(prs)
+            mock_notify.assert_awaited_once_with(
+                prs,
+                threshold=3,
+                urgency="normal",
+            )
 
     async def test_suppresses_notifications_on_first_poll(self) -> None:
         daemon = Daemon(_make_config())
@@ -319,6 +324,8 @@ class TestReloadConfig:
             token: str,
             username: str,
             repos: list[str] | None = None,
+            base_url: str = "https://api.github.com",
+            max_retries: int = 3,
         ) -> None:
             call_order.append("update_config")
 
@@ -607,3 +614,200 @@ class TestSecondPollNotifications:
             notified_prs = mock_notify.call_args[0][0]
             assert len(notified_prs) == 1
             assert notified_prs[0].number == 2
+
+
+# ---------------------------------------------------------------------------
+# Tests: notifications_enabled config
+# ---------------------------------------------------------------------------
+
+
+class TestNotificationsEnabled:
+    """notifications_enabled config controls whether notifications fire."""
+
+    async def test_disabled_suppresses_all_notifications(self) -> None:
+        daemon = Daemon(_make_config(notifications_enabled=False))
+        prs = [_make_pr(1)]
+        daemon.client.fetch_all = AsyncMock(return_value=prs)  # type: ignore[method-assign]
+        daemon.interface = MagicMock()
+        daemon._first_poll = False
+
+        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+            await daemon._poll_once()
+            mock_notify.assert_not_awaited()
+
+    async def test_enabled_sends_notifications(self) -> None:
+        daemon = Daemon(_make_config(notifications_enabled=True))
+        prs = [_make_pr(1)]
+        daemon.client.fetch_all = AsyncMock(return_value=prs)  # type: ignore[method-assign]
+        daemon.interface = MagicMock()
+        daemon._first_poll = False
+
+        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+            await daemon._poll_once()
+            mock_notify.assert_awaited_once()
+
+
+# ---------------------------------------------------------------------------
+# Tests: notify_on_first_poll config
+# ---------------------------------------------------------------------------
+
+
+class TestNotifyOnFirstPoll:
+    """notify_on_first_poll config controls first-poll notification behavior."""
+
+    async def test_first_poll_notifies_when_enabled(self) -> None:
+        daemon = Daemon(_make_config(notify_on_first_poll=True))
+        prs = [_make_pr(1)]
+        daemon.client.fetch_all = AsyncMock(return_value=prs)  # type: ignore[method-assign]
+        daemon.interface = MagicMock()
+        assert daemon._first_poll is True
+
+        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+            await daemon._poll_once()
+            mock_notify.assert_awaited_once()
+
+    async def test_first_poll_suppressed_when_disabled(self) -> None:
+        daemon = Daemon(_make_config(notify_on_first_poll=False))
+        prs = [_make_pr(1)]
+        daemon.client.fetch_all = AsyncMock(return_value=prs)  # type: ignore[method-assign]
+        daemon.interface = MagicMock()
+        assert daemon._first_poll is True
+
+        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+            await daemon._poll_once()
+            mock_notify.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# Tests: notification_threshold and notification_urgency passthrough
+# ---------------------------------------------------------------------------
+
+
+class TestNotificationConfigPassthrough:
+    """Config values for threshold and urgency are passed to notify_new_prs."""
+
+    async def test_custom_threshold_and_urgency_passed(self) -> None:
+        daemon = Daemon(_make_config(notification_threshold=10, notification_urgency="critical"))
+        prs = [_make_pr(1)]
+        daemon.client.fetch_all = AsyncMock(return_value=prs)  # type: ignore[method-assign]
+        daemon.interface = MagicMock()
+        daemon._first_poll = False
+
+        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+            await daemon._poll_once()
+            mock_notify.assert_awaited_once_with(
+                prs,
+                threshold=10,
+                urgency="critical",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Tests: dbus_enabled config
+# ---------------------------------------------------------------------------
+
+
+class TestDbusEnabled:
+    """dbus_enabled config controls whether D-Bus is registered on start."""
+
+    async def test_dbus_disabled_skips_setup(self) -> None:
+        daemon = Daemon(_make_config(dbus_enabled=False))
+        daemon.client.start = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.close = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.fetch_all = AsyncMock(return_value=[])  # type: ignore[method-assign]
+
+        with patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
+
+            async def poll_and_stop() -> None:
+                daemon._handle_shutdown()
+
+            daemon._poll_once = poll_and_stop  # type: ignore[method-assign]
+            await daemon.start()
+
+            mock_setup.assert_not_awaited()
+            assert daemon.bus is None
+            assert daemon.interface is None
+
+    async def test_dbus_enabled_calls_setup(self) -> None:
+        daemon = Daemon(_make_config(dbus_enabled=True))
+        mock_bus = MagicMock()
+        mock_interface = MagicMock()
+        daemon.client.start = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.close = AsyncMock()  # type: ignore[method-assign]
+
+        with patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
+            mock_setup.return_value = (mock_bus, mock_interface)
+
+            async def poll_and_stop() -> None:
+                daemon._handle_shutdown()
+
+            daemon._poll_once = poll_and_stop  # type: ignore[method-assign]
+            await daemon.start()
+
+            mock_setup.assert_awaited_once()
+            assert daemon.bus is mock_bus
+            assert daemon.interface is mock_interface
+
+
+# ---------------------------------------------------------------------------
+# Tests: log level on config reload
+# ---------------------------------------------------------------------------
+
+
+class TestReloadLogLevel:
+    """_reload_config should apply the new log_level from reloaded config."""
+
+    async def test_reload_applies_log_level(self) -> None:
+        daemon = Daemon(_make_config(log_level="info"))
+        new_config = _make_config(log_level="debug")
+        daemon.client.close = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.start = AsyncMock()  # type: ignore[method-assign]
+
+        with patch("github_monitor.daemon.load_config", return_value=new_config):
+            await daemon._reload_config()
+
+        assert logging.getLogger().level == logging.DEBUG
+
+    async def test_reload_applies_warning_level(self) -> None:
+        daemon = Daemon(_make_config(log_level="debug"))
+        new_config = _make_config(log_level="warning")
+        daemon.client.close = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.start = AsyncMock()  # type: ignore[method-assign]
+
+        with patch("github_monitor.daemon.load_config", return_value=new_config):
+            await daemon._reload_config()
+
+        assert logging.getLogger().level == logging.WARNING
+
+
+# ---------------------------------------------------------------------------
+# Tests: client receives base_url and max_retries
+# ---------------------------------------------------------------------------
+
+
+class TestClientConfigPassthrough:
+    """Daemon passes github_base_url and max_retries to GitHubClient."""
+
+    def test_client_receives_base_url_and_max_retries(self) -> None:
+        config = _make_config(
+            github_base_url="https://gh.corp.example.com/api/v3",
+            max_retries=5,
+        )
+        daemon = Daemon(config)
+        assert daemon.client._base_url == "https://gh.corp.example.com/api/v3"
+        assert daemon.client._max_retries == 5
+
+    async def test_reload_passes_base_url_and_max_retries(self) -> None:
+        daemon = Daemon(_make_config())
+        new_config = _make_config(
+            github_base_url="https://gh.new.example.com",
+            max_retries=7,
+        )
+        daemon.client.close = AsyncMock()  # type: ignore[method-assign]
+        daemon.client.start = AsyncMock()  # type: ignore[method-assign]
+
+        with patch("github_monitor.daemon.load_config", return_value=new_config):
+            await daemon._reload_config()
+
+        assert daemon.client._base_url == "https://gh.new.example.com"
+        assert daemon.client._max_retries == 7

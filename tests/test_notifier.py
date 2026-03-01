@@ -610,3 +610,98 @@ class TestConstants:
 
     def test_batch_body_limit(self) -> None:
         assert _BATCH_BODY_LIMIT == 5
+
+
+# ---------------------------------------------------------------------------
+# Tests: notify_new_prs — custom threshold
+# ---------------------------------------------------------------------------
+
+
+class TestNotifyCustomThreshold:
+    """notify_new_prs respects the threshold parameter."""
+
+    async def test_threshold_1_sends_batch_for_2_prs(self) -> None:
+        """With threshold=1, 2 PRs should trigger a batch notification."""
+        prs = [_make_pr(number=1), _make_pr(number=2)]
+        proc = _mock_process()
+
+        with patch(
+            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            return_value=proc,
+        ) as mock_exec:
+            await notify_new_prs(prs, threshold=1)
+
+            # Batch = 1 call (not 2 individual)
+            mock_exec.assert_called_once()
+            args = mock_exec.call_args[0]
+            assert "2 new PR review requests" in args
+
+    async def test_threshold_5_sends_individual_for_5_prs(self) -> None:
+        """With threshold=5, 5 PRs should get individual notifications."""
+        prs = [_make_pr(number=i) for i in range(1, 6)]
+        proc = _mock_process()
+
+        with (
+            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch(
+                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                return_value=proc,
+            ) as mock_exec,
+        ):
+            await notify_new_prs(prs, threshold=5)
+
+            assert mock_exec.call_count == 5
+
+
+# ---------------------------------------------------------------------------
+# Tests: notify_new_prs — custom urgency
+# ---------------------------------------------------------------------------
+
+
+class TestNotifyCustomUrgency:
+    """notify_new_prs passes urgency through to _send_notification."""
+
+    async def test_individual_notification_uses_custom_urgency(self) -> None:
+        pr = _make_pr(number=1)
+        proc = _mock_process()
+
+        with (
+            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch(
+                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                return_value=proc,
+            ) as mock_exec,
+        ):
+            await notify_new_prs([pr], urgency="critical")
+
+            args = mock_exec.call_args[0]
+            assert "--urgency=critical" in args
+
+    async def test_batch_notification_uses_custom_urgency(self) -> None:
+        prs = [_make_pr(number=i) for i in range(1, 6)]
+        proc = _mock_process()
+
+        with patch(
+            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            return_value=proc,
+        ) as mock_exec:
+            await notify_new_prs(prs, urgency="low")
+
+            args = mock_exec.call_args[0]
+            assert "--urgency=low" in args
+
+    async def test_default_urgency_is_normal(self) -> None:
+        pr = _make_pr(number=1)
+        proc = _mock_process()
+
+        with (
+            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch(
+                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                return_value=proc,
+            ) as mock_exec,
+        ):
+            await notify_new_prs([pr])
+
+            args = mock_exec.call_args[0]
+            assert "--urgency=normal" in args

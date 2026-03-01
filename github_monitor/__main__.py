@@ -36,13 +36,17 @@ def main() -> None:
     )
     args = parser.parse_args()
 
+    config_path = Path(args.config) if args.config else None
+    config = load_config(config_path)
+
+    # CLI --verbose overrides config log_level
+    log_level = logging.DEBUG if args.verbose else getattr(logging, config.log_level.upper())
+
     logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.INFO,
+        level=log_level,
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    config_path = Path(args.config) if args.config else None
-    config = load_config(config_path)
     daemon = Daemon(config, config_path)
 
     async def run() -> None:

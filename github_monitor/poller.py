@@ -87,17 +87,19 @@ def _parse_pr(
 class GitHubClient:
     """Async GitHub API client for fetching PRs."""
 
-    BASE_URL = "https://api.github.com"
-
     def __init__(
         self,
         token: str,
         username: str,
         repos: list[str] | None = None,
+        base_url: str = "https://api.github.com",
+        max_retries: int = 3,
     ) -> None:
         self._token = token
         self._username = username
         self._repos = repos or []
+        self._base_url = base_url.rstrip("/")
+        self._max_retries = max_retries
         self._session: aiohttp.ClientSession | None = None
         self._rate_limit_remaining: int = 30
         self._rate_limit_reset: datetime | None = None
@@ -125,11 +127,15 @@ class GitHubClient:
         token: str,
         username: str,
         repos: list[str] | None = None,
+        base_url: str = "https://api.github.com",
+        max_retries: int = 3,
     ) -> None:
         """Update client configuration (called on SIGHUP config reload)."""
         self._token = token
         self._username = username
         self._repos = repos or []
+        self._base_url = base_url.rstrip("/")
+        self._max_retries = max_retries
         # Session headers will be stale — recreate on next start()
 
     # -- public fetch methods ------------------------------------------------
@@ -207,7 +213,7 @@ class GitHubClient:
             raise RuntimeError(msg)
 
         all_items: list[dict[str, Any]] = []
-        url: str | None = f"{self.BASE_URL}/search/issues"
+        url: str | None = f"{self._base_url}/search/issues"
         params: dict[str, str] | None = {
             "q": query,
             "per_page": "100",
@@ -266,7 +272,6 @@ class GitHubClient:
         self,
         url: str,
         params: dict[str, str] | None = None,
-        max_retries: int = 3,
     ) -> aiohttp.ClientResponse:
         """Make a GET request with exponential backoff on 5xx errors."""
         if self._session is None:
@@ -274,6 +279,7 @@ class GitHubClient:
             raise RuntimeError(msg)
 
         last_resp: aiohttp.ClientResponse | None = None
+        max_retries = self._max_retries
 
         for attempt in range(max_retries):
             resp = await self._session.get(url, params=params)

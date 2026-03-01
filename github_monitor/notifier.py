@@ -103,20 +103,25 @@ async def _fetch_avatar_bytes(avatar_url: str, session: aiohttp.ClientSession) -
         return None
 
 
-async def notify_new_prs(new_prs: list[PullRequest]) -> None:
+async def notify_new_prs(
+    new_prs: list[PullRequest],
+    *,
+    threshold: int = _INDIVIDUAL_THRESHOLD,
+    urgency: str = "normal",
+) -> None:
     """Send desktop notifications for newly discovered PRs.
 
-    If there are 1-3 new PRs, each gets its own notification with
-    the author's avatar as the icon and a clickable action to open
+    If there are 1-*threshold* new PRs, each gets its own notification
+    with the author's avatar as the icon and a clickable action to open
     the PR in a browser.
 
-    If there are more than 3, a single summary notification is sent
-    listing up to the first 5 PRs to avoid desktop spam.
+    If there are more than *threshold*, a single summary notification is
+    sent listing up to the first 5 PRs to avoid desktop spam.
     """
     if not new_prs:
         return
 
-    if len(new_prs) <= _INDIVIDUAL_THRESHOLD:
+    if len(new_prs) <= threshold:
         async with aiohttp.ClientSession() as session:
             for pr in new_prs:
                 icon = await _download_avatar(pr.author_avatar_url, session)
@@ -125,12 +130,14 @@ async def notify_new_prs(new_prs: list[PullRequest]) -> None:
                     body=f"#{pr.number} {pr.title}\nby {pr.author}",
                     url=pr.url,
                     icon=icon,
+                    urgency=urgency,
                 )
     else:
         body = "\n".join(f"- {pr.repo_full_name}#{pr.number}: {pr.title}" for pr in new_prs[:_BATCH_BODY_LIMIT])
         await _send_notification(
             summary=f"{len(new_prs)} new PR review requests",
             body=body,
+            urgency=urgency,
         )
 
 

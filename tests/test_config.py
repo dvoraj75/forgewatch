@@ -62,6 +62,14 @@ def test_load_minimal_config_uses_defaults(minimal_config_file: Path) -> None:
     cfg = load_config(minimal_config_file)
     assert cfg.poll_interval == 300
     assert cfg.repos == []
+    assert cfg.log_level == "info"
+    assert cfg.notify_on_first_poll is False
+    assert cfg.notifications_enabled is True
+    assert cfg.dbus_enabled is True
+    assert cfg.github_base_url == "https://api.github.com"
+    assert cfg.max_retries == 3
+    assert cfg.notification_threshold == 3
+    assert cfg.notification_urgency == "normal"
 
 
 def test_config_path_as_string(config_file: Path) -> None:
@@ -162,6 +170,157 @@ def test_repos_not_a_list(tmp_path: Path) -> None:
     p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nrepos = "owner/repo"\n')
     with pytest.raises(ConfigError, match="repos must be a list"):
         load_config(p)
+
+
+# ---------------------------------------------------------------------------
+# Validation errors — new config fields
+# ---------------------------------------------------------------------------
+
+
+def test_invalid_log_level(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nlog_level = "trace"\n')
+    with pytest.raises(ConfigError, match="log_level must be one of"):
+        load_config(p)
+
+
+def test_log_level_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nlog_level = 42\n')
+    with pytest.raises(ConfigError, match="log_level must be a string"):
+        load_config(p)
+
+
+def test_log_level_case_insensitive(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nlog_level = "DEBUG"\n')
+    cfg = load_config(p)
+    assert cfg.log_level == "debug"
+
+
+def test_notify_on_first_poll_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nnotify_on_first_poll = "yes"\n')
+    with pytest.raises(ConfigError, match="notify_on_first_poll must be a boolean"):
+        load_config(p)
+
+
+def test_notifications_enabled_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nnotifications_enabled = 0\n')
+    with pytest.raises(ConfigError, match="notifications_enabled must be a boolean"):
+        load_config(p)
+
+
+def test_dbus_enabled_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\ndbus_enabled = "false"\n')
+    with pytest.raises(ConfigError, match="dbus_enabled must be a boolean"):
+        load_config(p)
+
+
+def test_github_base_url_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\ngithub_base_url = 123\n')
+    with pytest.raises(ConfigError, match="github_base_url must be a string"):
+        load_config(p)
+
+
+def test_github_base_url_invalid_scheme(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\ngithub_base_url = "ftp://example.com"\n')
+    with pytest.raises(ConfigError, match="github_base_url must start with http"):
+        load_config(p)
+
+
+def test_github_base_url_strips_trailing_slash(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\ngithub_base_url = "https://gh.example.com/"\n')
+    cfg = load_config(p)
+    assert cfg.github_base_url == "https://gh.example.com"
+
+
+def test_max_retries_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nmax_retries = "three"\n')
+    with pytest.raises(ConfigError, match="max_retries must be an integer"):
+        load_config(p)
+
+
+def test_max_retries_negative(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nmax_retries = -1\n')
+    with pytest.raises(ConfigError, match="max_retries must be >= 0"):
+        load_config(p)
+
+
+def test_max_retries_zero_allowed(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nmax_retries = 0\n')
+    cfg = load_config(p)
+    assert cfg.max_retries == 0
+
+
+def test_notification_threshold_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nnotification_threshold = "high"\n')
+    with pytest.raises(ConfigError, match="notification_threshold must be an integer"):
+        load_config(p)
+
+
+def test_notification_threshold_too_low(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nnotification_threshold = 0\n')
+    with pytest.raises(ConfigError, match="notification_threshold must be >= 1"):
+        load_config(p)
+
+
+def test_invalid_notification_urgency(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nnotification_urgency = "urgent"\n')
+    with pytest.raises(ConfigError, match="notification_urgency must be one of"):
+        load_config(p)
+
+
+def test_notification_urgency_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nnotification_urgency = 1\n')
+    with pytest.raises(ConfigError, match="notification_urgency must be a string"):
+        load_config(p)
+
+
+def test_notification_urgency_case_insensitive(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nnotification_urgency = "Critical"\n')
+    cfg = load_config(p)
+    assert cfg.notification_urgency == "critical"
+
+
+def test_all_new_fields_set(tmp_path: Path) -> None:
+    """All new config fields can be set together."""
+    content = """\
+github_token = "ghp_abc"
+github_username = "user"
+log_level = "warning"
+notify_on_first_poll = true
+notifications_enabled = false
+dbus_enabled = false
+github_base_url = "https://gh.corp.example.com/api/v3"
+max_retries = 5
+notification_threshold = 10
+notification_urgency = "critical"
+"""
+    p = tmp_path / "config.toml"
+    p.write_text(content)
+    cfg = load_config(p)
+    assert cfg.log_level == "warning"
+    assert cfg.notify_on_first_poll is True
+    assert cfg.notifications_enabled is False
+    assert cfg.dbus_enabled is False
+    assert cfg.github_base_url == "https://gh.corp.example.com/api/v3"
+    assert cfg.max_retries == 5
+    assert cfg.notification_threshold == 10
+    assert cfg.notification_urgency == "critical"
 
 
 # ---------------------------------------------------------------------------

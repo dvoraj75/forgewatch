@@ -12,3 +12,34 @@ poll_interval = 300
 # If empty, monitors all repos where you have review requests
 # repos = ["owner/repo1", "owner/repo2"]
 repos = []
+
+# Log level: "debug", "info", "warning", or "error" (default: "info")
+# Tip: change to "debug" and run `systemctl --user reload github-monitor`
+# to enable debug logging without restarting the service.
+# log_level = "info"
+
+# Send notifications for PRs found on the first poll (default: false)
+# By default, only PRs that appear *after* the daemon starts are notified.
+# notify_on_first_poll = false
+
+# Enable/disable desktop notifications (default: true)
+# Set to false for headless setups or testing.
+# notifications_enabled = true
+
+# Enable/disable D-Bus interface (default: true)
+# Set to false if D-Bus is unavailable (e.g. containers, SSH sessions).
+# dbus_enabled = true
+
+# GitHub API base URL (default: "https://api.github.com")
+# Override for GitHub Enterprise Server installations.
+# github_base_url = "https://github.example.com/api/v3"
+
+# Max HTTP retries for 5xx errors with exponential backoff (default: 3)
+# max_retries = 3
+
+# Number of new PRs that trigger individual notifications (default: 3)
+# Above this threshold, a single summary notification is sent instead.
+# notification_threshold = 3
+
+# Notification urgency: "low", "normal", or "critical" (default: "normal")
+# notification_urgency = "normal"
