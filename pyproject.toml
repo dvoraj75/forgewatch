@@ -83,6 +83,7 @@ ignore = [
     "SLF001",  # private member access is fine in tests
     "INP001",  # tests don't need __init__.py
     "ARG001",  # unused callback args are fine in tests (aioresponses callbacks)
+    "PLR0913", # test helpers often mirror dataclass constructors
     "ERA001",  # commented-out code used as section headers in tests
 ]
 
