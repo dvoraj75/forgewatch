@@ -98,6 +98,18 @@ def main() -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
+    logger = logging.getLogger(__name__)
+
+    # Load icon_theme from config (best-effort: default to "light" on failure).
+    icon_theme = "light"
+    try:
+        from github_monitor.config import load_config  # noqa: PLC0415
+
+        cfg = load_config()
+        icon_theme = cfg.icon_theme
+    except Exception:  # noqa: BLE001
+        logger.warning("Failed to load config, using default icon theme 'light'", exc_info=True)
+
     # Install gbulb BEFORE obtaining an event loop so the GLib-based
     # policy is active from the start.
     import gbulb  # noqa: PLC0415
@@ -108,7 +120,7 @@ def main() -> None:
     # which must only happen after dependency checks have passed.
     from .app import IndicatorApp  # noqa: PLC0415
 
-    app = IndicatorApp()
+    app = IndicatorApp(icon_theme=icon_theme)
     loop = asyncio.new_event_loop()
     try:
         loop.run_until_complete(app.run())

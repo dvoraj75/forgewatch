@@ -16,6 +16,7 @@ _REPO_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$")
 _MIN_POLL_INTERVAL = 30
 _VALID_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
 _VALID_URGENCIES = frozenset({"low", "normal", "critical"})
+_VALID_ICON_THEMES = frozenset({"light", "dark"})
 
 
 class ConfigError(Exception):
@@ -38,6 +39,7 @@ class Config:
     max_retries: int = 3
     notification_threshold: int = 3
     notification_urgency: str = "normal"
+    icon_theme: str = "light"
 
 
 def load_config(path: Path | str | None = None) -> Config:
@@ -175,4 +177,5 @@ def _validate(raw: dict[str, object]) -> Config:
         max_retries=_validate_int_min(raw, "max_retries", default=3, minimum=0),
         notification_threshold=_validate_int_min(raw, "notification_threshold", default=3, minimum=1),
         notification_urgency=_validate_choice(raw, "notification_urgency", default="normal", choices=_VALID_URGENCIES),
+        icon_theme=_validate_choice(raw, "icon_theme", default="light", choices=_VALID_ICON_THEMES),
     )

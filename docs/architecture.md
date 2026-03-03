@@ -128,8 +128,10 @@ D-Bus and is architecturally independent -- it does not import any daemon
 modules. It consists of:
 
 - **Entry point** (`__main__.py`) -- checks for GTK3, AppIndicator3, and gbulb
-  dependencies before importing any indicator code. Installs the gbulb event
-  loop (GLib + asyncio integration) and launches the application.
+  dependencies before importing any indicator code. Loads `config.toml`
+  (best-effort) to read the `icon_theme` setting, falling back to `"light"` if
+  config loading fails. Installs the gbulb event loop (GLib + asyncio
+  integration) and launches the application.
 - **Orchestrator** (`app.py`) -- wires the D-Bus client, tray icon, and popup
   window. Bridges synchronous GTK callbacks and asynchronous D-Bus calls.
 - **D-Bus client** (`client.py`) -- connects to the daemon's
@@ -138,7 +140,10 @@ modules. It consists of:
   daemon disappears.
 - **Tray icon** (`tray.py`) -- AppIndicator3-based system tray icon with a PR
   count label and colour-coded icons (neutral, active, alert, disconnected).
-  Provides a GTK menu with Show/Hide PRs, Refresh, and Quit actions.
+  Icons are loaded from `resources/light/` or `resources/dark/` depending on
+  the configured `icon_theme`, allowing proper visibility on both light and
+  dark desktop panels. Provides a GTK menu with Show/Hide PRs, Refresh, and
+  Quit actions.
 - **Popup window** (`window.py`) -- GTK3 window positioned near the tray icon
   showing a scrollable list of PRs. Each row displays the repo, PR number,
   title, author, and relative time. Clicking a row opens the PR in the browser

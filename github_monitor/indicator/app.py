@@ -38,7 +38,7 @@ class IndicatorApp:
     3. ``shutdown()`` — disconnect from D-Bus, clean up resources.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, *, icon_theme: str = "light") -> None:
         self._current_prs: list[PRInfo] = []
         self._current_status: DaemonStatus | None = None
         self._shutdown_event = asyncio.Event()
@@ -55,6 +55,7 @@ class IndicatorApp:
             on_activate=self._on_activate,
             on_refresh=self._on_refresh,
             on_quit=self._on_quit,
+            icon_theme=icon_theme,
         )
         self._window = PRWindow(
             on_pr_clicked=self._on_pr_clicked,

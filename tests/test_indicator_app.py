@@ -98,11 +98,13 @@ def _create_app(
     mock_client_cls: MagicMock,
     mock_tray_cls: MagicMock,
     mock_window_cls: MagicMock,
+    *,
+    icon_theme: str = "light",
 ) -> tuple[Any, MagicMock, MagicMock, MagicMock]:
     """Import and create IndicatorApp with all GTK components mocked."""
     from github_monitor.indicator.app import IndicatorApp
 
-    app = IndicatorApp()
+    app = IndicatorApp(icon_theme=icon_theme)
     # Return convenience references to the mock instances.
     client = mock_client_cls.return_value
     tray = mock_tray_cls.return_value
@@ -136,6 +138,14 @@ class TestConstruction:
         assert "on_activate" in kwargs.kwargs
         assert "on_refresh" in kwargs.kwargs
         assert "on_quit" in kwargs.kwargs
+        assert kwargs.kwargs["icon_theme"] == "light"
+
+    def test_creates_tray_with_custom_icon_theme(
+        self, mock_client_cls: MagicMock, mock_tray_cls: MagicMock, mock_window_cls: MagicMock
+    ) -> None:
+        _create_app(mock_client_cls, mock_tray_cls, mock_window_cls, icon_theme="dark")
+        kwargs = mock_tray_cls.call_args
+        assert kwargs.kwargs["icon_theme"] == "dark"
 
     def test_creates_window_with_callbacks(
         self, mock_client_cls: MagicMock, mock_tray_cls: MagicMock, mock_window_cls: MagicMock

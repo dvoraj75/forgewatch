@@ -43,3 +43,8 @@ repos = []
 
 # Notification urgency: "low", "normal", or "critical" (default: "normal")
 # notification_urgency = "normal"
+
+# Icon theme for the system tray indicator: "light" or "dark" (default: "light")
+# Use "light" for light desktop panels (dark icons on light background).
+# Use "dark" for dark desktop panels (light icons on dark background).
+# icon_theme = "light"

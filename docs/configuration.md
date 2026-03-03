@@ -31,6 +31,7 @@ If no config file is found at the resolved path, a `ConfigError` is raised.
 | `max_retries` | integer | No | `3` | Max HTTP retries for 5xx errors (minimum: 0) |
 | `notification_threshold` | integer | No | `3` | PRs above this count get a summary notification instead of individual ones (minimum: 1) |
 | `notification_urgency` | string | No | `"normal"` | Notification urgency: `"low"`, `"normal"`, or `"critical"` |
+| `icon_theme` | string | No | `"light"` | Icon theme for the system tray indicator: `"light"` (dark icons for light panels) or `"dark"` (light icons for dark panels) |
 
 ## GitHub token setup
 
@@ -138,6 +139,7 @@ is raised with a descriptive message.
 - `max_retries` -- must be an integer >= 0
 - `notification_threshold` -- must be an integer >= 1
 - `notification_urgency` -- must be one of `low`, `normal`, `critical` (case-insensitive)
+- `icon_theme` -- must be one of `light`, `dark` (case-insensitive)
 
 ## Example config
 
@@ -166,6 +168,7 @@ github_base_url         = "https://github.example.com/api/v3"
 max_retries             = 5
 notification_threshold  = 5
 notification_urgency    = "low"
+icon_theme              = "light"
 ```
 
 Using environment variables instead of a token in the file:
@@ -224,6 +227,11 @@ repos = []
 
 # Notification urgency: "low", "normal", or "critical" (default: "normal")
 # notification_urgency = "normal"
+
+# Icon theme for the system tray indicator: "light" or "dark" (default: "light")
+# Use "light" for light desktop panels (dark icons on light background).
+# Use "dark" for dark desktop panels (light icons on dark background).
+# icon_theme = "light"
 ```
 
 ## Runtime changes via SIGHUP
@@ -268,4 +276,5 @@ print(cfg.github_base_url)           # "https://api.github.com"
 print(cfg.max_retries)               # 3
 print(cfg.notification_threshold)    # 3
 print(cfg.notification_urgency)      # "normal"
+print(cfg.icon_theme)                # "light"
 ```

@@ -51,9 +51,11 @@ Launch the indicator after verifying dependencies.
 1. Calls `_check_dependencies()` -- exits with code 1 on failure
 2. Parses `--verbose` flag for debug logging
 3. Configures logging
-4. Installs `gbulb` event loop (`gbulb.install()`)
-5. Creates an `IndicatorApp` and runs it in a new event loop
-6. Calls `app.shutdown()` in a `finally` block for clean resource release
+4. Loads `config.toml` (best-effort) to read the `icon_theme` setting; falls
+   back to `"light"` if config loading fails for any reason
+5. Installs `gbulb` event loop (`gbulb.install()`)
+6. Creates an `IndicatorApp(icon_theme=...)` and runs it in a new event loop
+7. Calls `app.shutdown()` in a `finally` block for clean resource release
 
 **CLI arguments:**
 
@@ -249,11 +251,14 @@ Returns the updated PR list, or an empty list on failure.
 
 ```python
 class IndicatorApp:
-    def __init__(self) -> None: ...
+    def __init__(self, *, icon_theme: str = "light") -> None: ...
 ```
 
 Main application that bridges D-Bus, tray icon, and popup window. Creates
 and wires together a `DaemonClient`, `TrayIcon`, and `PRWindow`.
+
+The `icon_theme` parameter is forwarded to `TrayIcon` to select the icon
+variant directory (`resources/light/` or `resources/dark/`).
 
 The lifecycle is:
 1. `run()` -- register signal handlers, connect to daemon, enter event loop
@@ -317,7 +322,7 @@ These synchronous callbacks are registered with the client, tray, and window:
 | Constant | Value | Description |
 |---|---|---|
 | `_INDICATOR_ID` | `github-monitor-indicator` | AppIndicator3 indicator ID |
-| `_ICON_DIR` | `indicator/resources/` | Directory containing custom icon files |
+| `_RESOURCES_DIR` | `indicator/resources/` | Base directory for icon files; subdirectory is selected by `icon_theme` (`light/` or `dark/`) |
 
 ### `TrayIcon`
 
@@ -328,6 +333,8 @@ class TrayIcon:
         on_activate: Callable[[], None],
         on_refresh: Callable[[], None],
         on_quit: Callable[[], None],
+        *,
+        icon_theme: str = "light",
     ) -> None: ...
 ```
 
@@ -335,11 +342,12 @@ AppIndicator3-based system tray icon with a PR count label and a GTK menu.
 
 **Constructor parameters:**
 
-| Parameter | Type | Description |
-|---|---|---|
-| `on_activate` | `Callable[[], None]` | Called when "Show PRs" / "Hide PRs" is clicked |
-| `on_refresh` | `Callable[[], None]` | Called when "Refresh" is clicked |
-| `on_quit` | `Callable[[], None]` | Called when "Quit" is clicked |
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `on_activate` | `Callable[[], None]` | *(required)* | Called when "Show PRs" / "Hide PRs" is clicked |
+| `on_refresh` | `Callable[[], None]` | *(required)* | Called when "Refresh" is clicked |
+| `on_quit` | `Callable[[], None]` | *(required)* | Called when "Quit" is clicked |
+| `icon_theme` | `str` | `"light"` | Icon variant: `"light"` (dark icons for light panels) or `"dark"` (light icons for dark panels) |
 
 **Menu items:** Show PRs (toggles label), Refresh, Quit.
 
@@ -623,7 +631,7 @@ import gbulb
 from github_monitor.indicator.app import IndicatorApp
 
 gbulb.install()
-app = IndicatorApp()
+app = IndicatorApp(icon_theme="dark")  # or "light" (default)
 loop = asyncio.new_event_loop()
 try:
     loop.run_until_complete(app.run())

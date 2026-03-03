@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _INDICATOR_ID = "github-monitor-indicator"
-_ICON_DIR = str(Path(__file__).resolve().parent / "resources")
+_RESOURCES_DIR = Path(__file__).resolve().parent / "resources"
 
 
 class TrayIcon:
@@ -43,6 +43,9 @@ class TrayIcon:
         Called when the user clicks "Refresh" in the menu.
     on_quit:
         Called when the user clicks "Quit" in the menu.
+    icon_theme:
+        Icon variant to use: ``"light"`` (dark icons for light panels)
+        or ``"dark"`` (light icons for dark panels).
     """
 
     def __init__(
@@ -50,6 +53,8 @@ class TrayIcon:
         on_activate: Callable[[], None],
         on_refresh: Callable[[], None],
         on_quit: Callable[[], None],
+        *,
+        icon_theme: str = "light",
     ) -> None:
         self._on_activate = on_activate
         self._on_refresh = on_refresh
@@ -61,12 +66,14 @@ class TrayIcon:
         self._has_review_requested: bool = False
         self._connected: bool = False
 
+        icon_dir = str(_RESOURCES_DIR / icon_theme)
+
         self._indicator = AppIndicator3.Indicator.new(
             _INDICATOR_ID,
             Icon.DISCONNECTED,
             AppIndicator3.IndicatorCategory.COMMUNICATIONS,
         )
-        self._indicator.set_icon_theme_path(_ICON_DIR)
+        self._indicator.set_icon_theme_path(icon_dir)
         self._indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 
         self._menu, self._show_prs_item = self._build_menu()

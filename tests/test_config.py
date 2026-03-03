@@ -70,6 +70,7 @@ def test_load_minimal_config_uses_defaults(minimal_config_file: Path) -> None:
     assert cfg.max_retries == 3
     assert cfg.notification_threshold == 3
     assert cfg.notification_urgency == "normal"
+    assert cfg.icon_theme == "light"
 
 
 def test_config_path_as_string(config_file: Path) -> None:
@@ -296,6 +297,34 @@ def test_notification_urgency_case_insensitive(tmp_path: Path) -> None:
     assert cfg.notification_urgency == "critical"
 
 
+def test_invalid_icon_theme(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nicon_theme = "blue"\n')
+    with pytest.raises(ConfigError, match="icon_theme must be one of"):
+        load_config(p)
+
+
+def test_icon_theme_wrong_type(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nicon_theme = 42\n')
+    with pytest.raises(ConfigError, match="icon_theme must be a string"):
+        load_config(p)
+
+
+def test_icon_theme_case_insensitive(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nicon_theme = "Dark"\n')
+    cfg = load_config(p)
+    assert cfg.icon_theme == "dark"
+
+
+def test_icon_theme_light(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('github_token = "ghp_abc"\ngithub_username = "user"\nicon_theme = "light"\n')
+    cfg = load_config(p)
+    assert cfg.icon_theme == "light"
+
+
 def test_all_new_fields_set(tmp_path: Path) -> None:
     """All new config fields can be set together."""
     content = """\
@@ -309,6 +338,7 @@ github_base_url = "https://gh.corp.example.com/api/v3"
 max_retries = 5
 notification_threshold = 10
 notification_urgency = "critical"
+icon_theme = "dark"
 """
     p = tmp_path / "config.toml"
     p.write_text(content)
@@ -321,6 +351,7 @@ notification_urgency = "critical"
     assert cfg.max_retries == 5
     assert cfg.notification_threshold == 10
     assert cfg.notification_urgency == "critical"
+    assert cfg.icon_theme == "dark"
 
 
 # ---------------------------------------------------------------------------
