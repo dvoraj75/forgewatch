@@ -48,35 +48,6 @@ notifications when new PRs arrive.
                               │  (system tray  │
                               │   + popup)     │
                               └────────────────┘
-```
-┌──────────────┐         ┌─────────────────┐
-│  GitHub API  │◄────────│  Poller         │
-│  (REST)      │         │  (asyncio +     │
-└──────────────┘         │   aiohttp)      │
-                         └────────┬────────┘
-                                  │
-                                  ▼
-                         ┌─────────────────┐
-                         │  State Store    │
-                         │  (in-memory     │
-                         │   dict)         │
-                         └───┬─────────┬───┘
-                             │         │
-                    ┌────────▼──┐  ┌───▼──────────┐
-                    │ Notifier  │  │ D-Bus        │
-                    │ (notify-  │  │ Interface    │
-                    │  send)    │  │              │
-                    └───────────┘  └───┬──────────┘
-                                      │
-                                      ▼
-                              D-Bus session bus
-                                      │
-                              ┌───────▼────────┐
-                              │ Future: Panel  │
-                              │ Plugin / CLI   │
-                              └────────────────┘
-```
-
 The poller queries the GitHub Search API on a configurable interval, the state
 store computes diffs (new / updated / closed PRs), the notifier sends desktop
 notifications for new PRs, and the D-Bus interface lets external tools query

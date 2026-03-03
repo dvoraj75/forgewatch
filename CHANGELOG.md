@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-03-03
+
+### Added
+
+- System tray indicator with live PR count and clickable popup window (GTK3/AppIndicator3)
+  - D-Bus client with auto-reconnect to daemon
+  - Popup window with scrollable PR list, status footer, and click-to-open
+  - Tray icon with colour-coded states (idle, active, alert, disconnected)
+  - Show/Hide toggle, Refresh, and Quit menu items
+- Light and dark icon theme support via `icon_theme` config option
+- Shared URL opener module (XDG Desktop Portal with xdg-open fallback), used by both notifier and indicator
+- Systemd user service for the indicator (`github-monitor-indicator.service`)
+- Comprehensive test suite for all indicator modules
+
+### Fixed
+
+- Indicator not reconnecting after daemon restart (stale reconnect handle prevented retry scheduling)
+- `install.sh` not restarting already-running services during reinstall
+
 ## [1.1.0] - 2026-03-01
 
 ### Added
