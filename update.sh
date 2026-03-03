@@ -7,7 +7,7 @@
 #   2. Pulls the latest code from the remote repository
 #   3. Re-installs the github-monitor package via uv tool install
 #   4. Updates the systemd service file and restarts the service
-#   5. Updates the system tray indicator autostart (if installed)
+#   5. Updates the system tray indicator service (if installed)
 #
 # Your configuration (~/.config/github-monitor/config.toml) is never touched.
 # Safe to re-run (idempotent).
@@ -198,28 +198,52 @@ else
     fi
 fi
 
-# --- Step 5: Update indicator autostart (if installed) -----------------------
+# --- Step 5: Update indicator service (if installed) -------------------------
 
 step 5 "Updating system tray indicator"
 
-AUTOSTART_DIR="${HOME}/.config/autostart"
-AUTOSTART_SRC="${SCRIPT_DIR}/autostart/github-monitor-indicator.desktop"
-AUTOSTART_DST="${AUTOSTART_DIR}/github-monitor-indicator.desktop"
+INDICATOR_SERVICE_NAME="github-monitor-indicator"
+INDICATOR_SERVICE_SRC="${SCRIPT_DIR}/systemd/${INDICATOR_SERVICE_NAME}.service"
+INDICATOR_SERVICE_DST="${SYSTEMD_USER_DIR}/${INDICATOR_SERVICE_NAME}.service"
 
-if [[ -f "${AUTOSTART_DST}" ]]; then
-    # Indicator autostart is currently installed — update it
-    if [[ -f "${AUTOSTART_SRC}" ]]; then
-        cp "${AUTOSTART_SRC}" "${AUTOSTART_DST}"
-        ok "Indicator autostart updated at ${AUTOSTART_DST}"
+if [[ -f "${INDICATOR_SERVICE_DST}" ]]; then
+    # Indicator systemd service is currently installed — update it
+    if [[ -f "${INDICATOR_SERVICE_SRC}" ]]; then
+        cp "${INDICATOR_SERVICE_SRC}" "${INDICATOR_SERVICE_DST}"
+        ok "Indicator service file updated at ${INDICATOR_SERVICE_DST}"
+
+        info "Reloading systemd user daemon..."
+        systemctl --user daemon-reload
+
+        if systemctl --user is-enabled --quiet "${INDICATOR_SERVICE_NAME}" 2>/dev/null; then
+            info "Restarting ${INDICATOR_SERVICE_NAME}..."
+            systemctl --user restart "${INDICATOR_SERVICE_NAME}"
+
+            # Give it a moment to start
+            sleep 2
+            ok "Indicator service restarted"
+        else
+            info "Indicator service is not enabled — skipping restart."
+            info "To enable and start: systemctl --user enable --now ${INDICATOR_SERVICE_NAME}"
+        fi
     else
-        warn "Autostart source file not found: ${AUTOSTART_SRC}"
+        warn "Service file not found: ${INDICATOR_SERVICE_SRC}"
     fi
 elif [[ "$install_indicator" == true ]]; then
-    info "Indicator autostart not currently installed."
-    info "To install it, re-run ./install.sh or copy manually:"
-    info "  cp ${AUTOSTART_SRC} ${AUTOSTART_DST}"
+    info "Indicator service not currently installed."
+    info "To install it, re-run ./install.sh or manually:"
+    info "  cp ${INDICATOR_SERVICE_SRC} ${INDICATOR_SERVICE_DST}"
+    info "  systemctl --user daemon-reload"
+    info "  systemctl --user enable --now ${INDICATOR_SERVICE_NAME}"
 else
     info "Indicator not available (missing GTK3/AppIndicator3 system packages)."
+fi
+
+# Clean up legacy XDG autostart file (from previous installations)
+LEGACY_AUTOSTART="${HOME}/.config/autostart/github-monitor-indicator.desktop"
+if [[ -f "${LEGACY_AUTOSTART}" ]]; then
+    rm "${LEGACY_AUTOSTART}"
+    ok "Removed legacy autostart file: ${LEGACY_AUTOSTART}"
 fi
 
 # --- Summary ------------------------------------------------------------------
@@ -231,8 +255,8 @@ echo -e "${BOLD}============================================${NC}"
 echo
 echo -e "  Version: ${BOLD}${new_version}${NC}"
 echo -e "  Binary:  $(command -v github-monitor 2>/dev/null || echo "${HOME}/.local/bin/github-monitor")"
-if [[ -f "${AUTOSTART_DST}" ]]; then
-    echo -e "  Indicator: ${AUTOSTART_DST}"
+if [[ -f "${INDICATOR_SERVICE_DST}" ]]; then
+    echo -e "  Indicator: ${INDICATOR_SERVICE_DST}"
 fi
 echo
 

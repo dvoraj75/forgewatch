@@ -7,7 +7,7 @@
 #   2. Installs the github-monitor package via uv tool install
 #   3. Interactively creates ~/.config/github-monitor/config.toml
 #   4. Installs and enables the systemd user service
-#   5. Installs the system tray indicator autostart (if GTK3/AppIndicator3 available)
+#   5. Installs and starts the system tray indicator service (if GTK3/AppIndicator3 available)
 #
 # Safe to re-run (idempotent).
 #
@@ -257,28 +257,42 @@ systemctl --user enable --now "${SERVICE_NAME}"
 # Give it a moment to start
 sleep 2
 
-# --- Step 5: Install indicator autostart (if supported) ----------------------
+# --- Step 5: Install indicator systemd service (if supported) ----------------
 
 step 5 "Installing system tray indicator"
 
-AUTOSTART_DIR="${HOME}/.config/autostart"
-AUTOSTART_SRC="${SCRIPT_DIR}/autostart/github-monitor-indicator.desktop"
-AUTOSTART_DST="${AUTOSTART_DIR}/github-monitor-indicator.desktop"
+INDICATOR_SERVICE_NAME="github-monitor-indicator"
+INDICATOR_SERVICE_SRC="${SCRIPT_DIR}/systemd/${INDICATOR_SERVICE_NAME}.service"
+INDICATOR_SERVICE_DST="${SYSTEMD_USER_DIR}/${INDICATOR_SERVICE_NAME}.service"
 
 if [[ "$install_indicator" == true ]]; then
     # Verify the indicator binary is available
     if command -v github-monitor-indicator &>/dev/null || [[ -x "${HOME}/.local/bin/github-monitor-indicator" ]]; then
-        if [[ -f "${AUTOSTART_SRC}" ]]; then
-            mkdir -p "${AUTOSTART_DIR}"
-            cp "${AUTOSTART_SRC}" "${AUTOSTART_DST}"
-            ok "Indicator autostart installed to ${AUTOSTART_DST}"
-            info "The system tray indicator will start automatically on next login."
-            info "To start it now: github-monitor-indicator &"
+        if [[ -f "${INDICATOR_SERVICE_SRC}" ]]; then
+            cp "${INDICATOR_SERVICE_SRC}" "${INDICATOR_SERVICE_DST}"
+            ok "Indicator service file installed to ${INDICATOR_SERVICE_DST}"
+
+            info "Reloading systemd user daemon..."
+            systemctl --user daemon-reload
+
+            info "Enabling and starting ${INDICATOR_SERVICE_NAME}..."
+            systemctl --user enable --now "${INDICATOR_SERVICE_NAME}"
+
+            # Give it a moment to start
+            sleep 2
+            ok "Indicator service started"
         else
-            warn "Autostart file not found: ${AUTOSTART_SRC} — skipping indicator setup."
+            warn "Service file not found: ${INDICATOR_SERVICE_SRC} — skipping indicator setup."
         fi
     else
         warn "github-monitor-indicator binary not found — skipping indicator setup."
+    fi
+
+    # Clean up legacy XDG autostart file (from previous installations)
+    LEGACY_AUTOSTART="${HOME}/.config/autostart/github-monitor-indicator.desktop"
+    if [[ -f "${LEGACY_AUTOSTART}" ]]; then
+        rm "${LEGACY_AUTOSTART}"
+        ok "Removed legacy autostart file: ${LEGACY_AUTOSTART}"
     fi
 else
     info "Indicator not installed (missing GTK3/AppIndicator3 system packages)."
@@ -294,8 +308,8 @@ echo
 echo -e "  Config:    ${CONFIG_FILE}"
 echo -e "  Service:   ${SERVICE_DST}"
 echo -e "  Binary:    $(command -v github-monitor 2>/dev/null || echo "${HOME}/.local/bin/github-monitor")"
-if [[ "$install_indicator" == true ]] && [[ -f "${AUTOSTART_DST}" ]]; then
-    echo -e "  Indicator: ${AUTOSTART_DST}"
+if [[ "$install_indicator" == true ]] && [[ -f "${INDICATOR_SERVICE_DST}" ]]; then
+    echo -e "  Indicator: ${INDICATOR_SERVICE_DST}"
 fi
 echo
 
@@ -310,7 +324,9 @@ echo "  systemctl --user restart github-monitor   # full restart"
 echo "  journalctl --user -u github-monitor -f    # follow logs"
 echo "  systemctl --user stop github-monitor      # stop the service"
 if [[ "$install_indicator" == true ]]; then
-    echo "  github-monitor-indicator                  # start the tray indicator"
+    echo "  systemctl --user status github-monitor-indicator   # indicator status"
+    echo "  systemctl --user restart github-monitor-indicator  # restart indicator"
+    echo "  journalctl --user -u github-monitor-indicator -f   # indicator logs"
 fi
 echo "  ./update.sh                               # update to latest version"
 echo "  ./uninstall.sh                            # uninstall everything"
