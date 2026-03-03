@@ -10,9 +10,10 @@ notifications when new PRs arrive.
 
 - **Live PR monitoring** -- polls GitHub Search API for PRs assigned to you or requesting your review
 - **Desktop notifications** -- individual notifications for small batches with author avatars and clickable links; summary for larger batches (configurable threshold)
+- **System tray indicator** -- optional panel icon with live PR count, colour-coded status, and a popup window listing all PRs (click to open in browser)
 - **D-Bus interface** -- query current PR state, trigger manual refresh, subscribe to change signals (can be disabled)
 - **GitHub Enterprise support** -- configurable API base URL
-- **Systemd integration** -- runs as a user service with security hardening and `systemctl reload` support
+- **Systemd integration** -- runs as a user service with security hardening and `systemctl reload` support; optional companion service for the indicator
 - **Resilient** -- exponential backoff with configurable retries, rate limit handling, graceful shutdown via signals (SIGTERM, SIGHUP for config reload)
 - **Runtime configurable** -- log level, notification behaviour, D-Bus toggle, and more can be changed via config reload
 
@@ -20,6 +21,33 @@ notifications when new PRs arrive.
 
 ## Architecture
 
+```
+┌──────────────┐         ┌─────────────────┐
+│  GitHub API  │◄────────│  Poller         │
+│  (REST)      │         │  (asyncio +     │
+└──────────────┘         │   aiohttp)      │
+                         └────────┬────────┘
+                                  │
+                                  ▼
+                         ┌─────────────────┐
+                         │  State Store    │
+                         │  (in-memory     │
+                         │   dict)         │
+                         └───┬─────────┬───┘
+                             │         │
+                    ┌────────▼──┐  ┌───▼──────────┐
+                    │ Notifier  │  │ D-Bus        │
+                    │ (notify-  │  │ Interface    │
+                    │  send)    │  │              │
+                    └───────────┘  └───┬──────────┘
+                                      │
+                              D-Bus session bus
+                                      │
+                              ┌───────▼────────┐
+                              │   Indicator    │
+                              │  (system tray  │
+                              │   + popup)     │
+                              └────────────────┘
 ```
 ┌──────────────┐         ┌─────────────────┐
 │  GitHub API  │◄────────│  Poller         │
@@ -52,7 +80,8 @@ notifications when new PRs arrive.
 The poller queries the GitHub Search API on a configurable interval, the state
 store computes diffs (new / updated / closed PRs), the notifier sends desktop
 notifications for new PRs, and the D-Bus interface lets external tools query
-current state.
+current state. The system tray indicator is a separate process that connects
+to the daemon over D-Bus to display a live PR count and a clickable popup.
 
 For a deeper dive, see [docs/architecture.md](docs/architecture.md).
 
@@ -124,6 +153,23 @@ uv run github-monitor -c /path/to/config.toml
 uv run github-monitor -v
 ```
 
+### Run the indicator (optional)
+
+The system tray indicator is a separate process that connects to the running
+daemon over D-Bus. It requires GTK3 and AppIndicator3 system packages (see
+[Dependencies](#system-tray-indicator-optional) below).
+
+```bash
+# Start the indicator (daemon must be running)
+uv run github-monitor-indicator
+
+# Or via python -m
+uv run python -m github_monitor.indicator
+
+# Verbose logging
+uv run github-monitor-indicator -v
+```
+
 ### Automated install / update / uninstall
 
 The project includes scripts for managing github-monitor as a systemd user
@@ -144,7 +190,7 @@ uncommitted changes or are on a non-main branch (unless you confirm).
 If you prefer to set things up manually instead of using the install script:
 
 ```bash
-# Install the service
+# Install the daemon service
 mkdir -p ~/.config/systemd/user/
 cp systemd/github-monitor.service ~/.config/systemd/user/
 
@@ -155,6 +201,17 @@ systemctl --user enable --now github-monitor
 # Check logs
 journalctl --user -u github-monitor -f
 ```
+
+To also run the system tray indicator as a service:
+
+```bash
+cp systemd/github-monitor-indicator.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now github-monitor-indicator
+```
+
+The indicator service depends on the daemon -- systemd starts them in the
+correct order and the indicator auto-reconnects if the daemon restarts.
 
 See [docs/systemd.md](docs/systemd.md) for the full guide, including token
 configuration, security hardening details, and troubleshooting.
@@ -168,8 +225,6 @@ github-monitor/
 ├── install.sh                   # Automated installer script
 ├── update.sh                    # Update script (pull + reinstall + restart)
 ├── uninstall.sh                 # Uninstall script
-├── plan.md                      # Architecture design document
-├── implementation.md            # Step-by-step implementation guide
 │
 ├── github_monitor/
 │   ├── __init__.py              # Package marker (__version__)
@@ -179,10 +234,24 @@ github-monitor/
 │   ├── store.py                 # In-memory state store with diff computation
 │   ├── dbus_service.py          # D-Bus interface (methods, signals, bus setup)
 │   ├── notifier.py              # Desktop notifications via notify-send
-│   └── daemon.py                # Main daemon loop and signal handling
+│   ├── url_opener.py            # Shared URL opener (XDG portal + xdg-open fallback)
+│   ├── daemon.py                # Main daemon loop and signal handling
+│   │
+│   └── indicator/               # System tray indicator (optional, separate process)
+│       ├── __init__.py
+│       ├── __main__.py          # python -m github_monitor.indicator entry point
+│       ├── app.py               # Application orchestrator
+│       ├── client.py            # D-Bus client for daemon communication
+│       ├── tray.py              # System tray icon (AppIndicator3)
+│       ├── window.py            # Popup window (GTK3) with PR list
+│       ├── models.py            # PRInfo and DaemonStatus dataclasses
+│       ├── _tray_state.py       # Pure icon/label state logic (no GTK imports)
+│       ├── _window_helpers.py   # Pure helpers: relative time, sorting, markup
+│       └── resources/           # SVG icons for the tray indicator
 │
 ├── systemd/
-│   └── github-monitor.service   # Systemd user service unit file
+│   ├── github-monitor.service           # Systemd user service (daemon)
+│   └── github-monitor-indicator.service # Systemd user service (indicator)
 │
 ├── tests/
 │   ├── test_config.py           # Tests for config module
@@ -191,7 +260,11 @@ github-monitor/
 │   ├── test_dbus_service.py     # Tests for D-Bus service module
 │   ├── test_notifier.py         # Tests for notifier module
 │   ├── test_daemon.py           # Tests for daemon module
-│   └── test_main.py             # Tests for __main__ module
+│   ├── test_main.py             # Tests for __main__ module
+│   ├── test_indicator_app.py    # Tests for indicator app orchestrator
+│   ├── test_indicator_client.py # Tests for indicator D-Bus client
+│   ├── test_indicator_tray.py   # Tests for indicator tray state logic
+│   └── test_indicator_window.py # Tests for indicator window helpers
 │
 └── docs/                        # Detailed documentation
     ├── architecture.md
@@ -204,7 +277,9 @@ github-monitor/
         ├── store.md
         ├── dbus_service.md
         ├── notifier.md
-        └── daemon.md
+        ├── url_opener.md
+        ├── daemon.md
+        └── indicator.md
 ```
 
 ## Development
@@ -224,7 +299,6 @@ details, and project structure notes.
 
 | Document | Description |
 |---|---|
-| [ROADMAP.md](ROADMAP.md) | Development roadmap and future plans |
 | [docs/architecture.md](docs/architecture.md) | System design, component interactions, design decisions |
 | [docs/configuration.md](docs/configuration.md) | Full configuration reference with examples |
 | [docs/development.md](docs/development.md) | Developer guide: tooling, conventions, testing |
@@ -234,7 +308,9 @@ details, and project structure notes.
 | [docs/modules/store.md](docs/modules/store.md) | `store.py` API reference |
 | [docs/modules/dbus_service.md](docs/modules/dbus_service.md) | `dbus_service.py` API reference |
 | [docs/modules/notifier.md](docs/modules/notifier.md) | `notifier.py` API reference |
+| [docs/modules/url_opener.md](docs/modules/url_opener.md) | `url_opener.py` API reference |
 | [docs/modules/daemon.md](docs/modules/daemon.md) | `daemon.py` API reference |
+| [docs/modules/indicator.md](docs/modules/indicator.md) | Indicator package API reference |
 
 ## Dependencies
 

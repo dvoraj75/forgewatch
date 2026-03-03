@@ -31,11 +31,14 @@ scripts) can query it.
                                              │
                                      D-Bus session bus
                                              │
-                                    ┌────────▼────────┐
-                                    │  External tools  │
-                                    │  (panel plugin,  │
-                                    │   CLI, scripts)  │
-                                    └─────────────────┘
+                      ┌──────────────────────┼────────────────────────────┐
+                      │                Indicator                          │
+                      │                                                    │
+                      │  ┌──────────┐    ┌──────────┐    ┌──────────────┐  │
+                      │  │  D-Bus   │───►│  Tray    │    │   Popup      │  │
+                      │  │  Client  │    │  Icon    │    │   Window     │  │
+                      │  └──────────┘    └──────────┘    └──────────────┘  │
+                      └────────────────────────────────────────────────────┘
 ```
 
 ## Components
@@ -106,6 +109,50 @@ downloads within a notification batch.
 
 See [modules/notifier.md](modules/notifier.md) for the full API reference.
 
+### URL Opener (`url_opener.py`)
+
+A shared utility module used by both the notifier and the indicator to open URLs
+in the default browser. It tries the XDG Desktop Portal (D-Bus) first, which
+works correctly from sandboxed systemd services, Flatpak, and Snap environments.
+If the portal is unavailable, it falls back to `xdg-open`. This module was
+extracted from the notifier to avoid code duplication once the indicator also
+needed URL-opening capabilities.
+
+See [modules/url_opener.md](modules/url_opener.md) for the full API reference.
+
+### Indicator (`indicator/`)
+
+An optional separate process that provides a system tray icon with a live PR
+count and a clickable popup window. The indicator connects to the daemon over
+D-Bus and is architecturally independent -- it does not import any daemon
+modules. It consists of:
+
+- **Entry point** (`__main__.py`) -- checks for GTK3, AppIndicator3, and gbulb
+  dependencies before importing any indicator code. Installs the gbulb event
+  loop (GLib + asyncio integration) and launches the application.
+- **Orchestrator** (`app.py`) -- wires the D-Bus client, tray icon, and popup
+  window. Bridges synchronous GTK callbacks and asynchronous D-Bus calls.
+- **D-Bus client** (`client.py`) -- connects to the daemon's
+  `org.github_monitor.Daemon` bus name, subscribes to the
+  `PullRequestsChanged` signal for live updates, and auto-reconnects when the
+  daemon disappears.
+- **Tray icon** (`tray.py`) -- AppIndicator3-based system tray icon with a PR
+  count label and colour-coded icons (neutral, active, alert, disconnected).
+  Provides a GTK menu with Show/Hide PRs, Refresh, and Quit actions.
+- **Popup window** (`window.py`) -- GTK3 window positioned near the tray icon
+  showing a scrollable list of PRs. Each row displays the repo, PR number,
+  title, author, and relative time. Clicking a row opens the PR in the browser
+  via the shared `url_opener` module.
+- **Models** (`models.py`) -- `PRInfo` and `DaemonStatus` frozen dataclasses
+  for data received from the daemon. These are intentionally separate from the
+  daemon's `PullRequest` dataclass to maintain process boundary isolation.
+- **Pure helpers** (`_tray_state.py`, `_window_helpers.py`) -- stateless
+  functions for icon selection, label formatting, relative time, PR sorting,
+  and Pango markup escaping. These have zero GTK imports and are fully
+  unit-testable without system packages.
+
+See [modules/indicator.md](modules/indicator.md) for the full API reference.
+
 ### Daemon (`daemon.py`)
 
 The main orchestrator. Wires together all components: loads config, starts the
@@ -127,6 +174,8 @@ See [modules/daemon.md](modules/daemon.md) for the full API reference.
 
 ## Data flow
 
+### Poll cycle (daemon)
+
 A single poll cycle follows this path:
 
 ```
@@ -143,6 +192,34 @@ A single poll cycle follows this path:
 5. If diff is non-empty:
    └── D-Bus signal: PullRequestsChanged
 ```
+
+### D-Bus to indicator
+
+When the indicator is running, it receives live updates from the daemon over
+the session bus:
+
+```
+1. Daemon emits PullRequestsChanged signal (JSON payload)
+        │
+        ▼
+2. DaemonClient._on_signal() receives the JSON string
+   └── _parse_prs() deserialises JSON → list[PRInfo]
+        │
+        ▼
+3. IndicatorApp._on_prs_changed() (synchronous callback)
+   └── Schedules _handle_prs_changed() as an async task
+        │
+        ▼
+4. _handle_prs_changed()
+   ├── DaemonClient.get_status() → DaemonStatus (pr_count, last_updated)
+   └── _update_ui(prs, status)
+        ├── TrayIcon.set_pr_count()     → update label + icon colour
+        └── PRWindow.update_prs()       → rebuild scrollable PR list + footer
+```
+
+On-demand refresh follows a similar path: the user clicks "Refresh" in the
+tray menu or popup window, the indicator calls the daemon's `Refresh()` D-Bus
+method, receives the updated PR list, and updates the UI.
 
 ## Key design decisions
 

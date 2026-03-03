@@ -14,9 +14,6 @@ clickable links; larger batches get a single summary to avoid desktop spam.
 | `_BATCH_BODY_LIMIT` | `5` | Maximum PRs listed in a batch notification body |
 | `_AVATAR_SIZE` | `64` | Avatar image size in pixels (appended as `?s=N` to URL) |
 | `_AVATAR_CACHE_DIR` | `{tempdir}/github-monitor-avatars` | Directory for cached avatar files |
-| `_PORTAL_BUS_NAME` | `org.freedesktop.portal.Desktop` | XDG Desktop Portal D-Bus bus name |
-| `_PORTAL_OBJECT_PATH` | `/org/freedesktop/portal/desktop` | XDG Desktop Portal D-Bus object path |
-| `_PORTAL_INTERFACE` | `org.freedesktop.portal.OpenURI` | XDG Desktop Portal OpenURI interface |
 
 Module-level state:
 
@@ -145,45 +142,10 @@ async def _wait_and_open(proc: asyncio.subprocess.Process, url: str) -> None:
 Background task that waits for a `notify-send` process (started with
 `--action=open=Open`) to complete. If the user clicked the "Open" action,
 `notify-send` prints `"open"` to stdout, and this function opens the URL
-in the default browser via `_open_url()` (which tries the XDG Desktop Portal
-first, then falls back to `xdg-open`).
+in the default browser via `url_opener.open_url()` (which tries the XDG
+Desktop Portal first, then falls back to `xdg-open`).
 
-### `_open_url()`
-
-```python
-async def _open_url(url: str) -> None:
-```
-
-Opens a URL in the default browser. Tries the XDG Desktop Portal first (via
-`_open_url_portal()`), which works correctly from sandboxed systemd services.
-Falls back to `xdg-open` (via `_open_url_xdg()`) when the portal is
-unavailable.
-
-### `_open_url_portal()`
-
-```python
-async def _open_url_portal(url: str) -> bool:
-```
-
-Opens a URL via the XDG Desktop Portal over D-Bus. Sends a raw `Message` to
-`org.freedesktop.portal.OpenURI.OpenURI` instead of using `dbus-next`'s
-introspection + proxy pattern — this avoids a `dbus-next` bug where
-introspecting the portal object fails on property names with hyphens (e.g.
-`power-saver-enabled` from `org.freedesktop.portal.PowerProfileMonitor`).
-
-Returns `True` on success, `False` on any failure (connection error, D-Bus
-error reply, timeout). The caller uses the return value to decide whether to
-fall back to `xdg-open`.
-
-### `_open_url_xdg()`
-
-```python
-async def _open_url_xdg(url: str) -> None:
-```
-
-Opens a URL via `xdg-open` (async subprocess). Used as a fallback when the
-XDG Desktop Portal is unavailable. Captures stderr and logs a warning on
-non-zero exit. Logs a warning if `xdg-open` is not found.
+See [url_opener.md](url_opener.md) for details on the URL opening mechanism.
 
 ## Usage example
 
@@ -209,10 +171,11 @@ await notify_new_prs(diff.new_prs, threshold=5, urgency="critical")
   on XFCE and most other desktop Linux environments
 - Clickable notifications use `notify-send --action=open=Open` and a background
   task that monitors stdout for the action name, then opens the PR URL via the
-  XDG Desktop Portal (D-Bus). When the portal is unavailable, `xdg-open` is
-  used as a fallback. The portal approach is necessary because `xdg-open` fails
-  silently inside the systemd sandbox when the browser is a Snap package (Snap's
-  `snap-confine` rejects the restricted permissions)
+  shared `url_opener` module (see [url_opener.md](url_opener.md)). The URL
+  opener tries the XDG Desktop Portal (D-Bus) first, falling back to `xdg-open`
+  when the portal is unavailable. The portal approach is necessary because
+  `xdg-open` fails silently inside the systemd sandbox when the browser is a
+  Snap package (Snap's `snap-confine` rejects the restricted permissions)
 - Author avatars are downloaded from GitHub, cached on disk (MD5-hashed
   filenames), and passed to `notify-send` via `--icon={path}`. A shared
   `aiohttp.ClientSession` is used for all avatar downloads within a

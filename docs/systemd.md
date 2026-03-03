@@ -328,7 +328,101 @@ If the portal is unavailable, the notifier falls back to `xdg-open`
 automatically (which works when running outside the systemd sandbox, e.g.
 during development).
 
+## Indicator service
+
+The system tray indicator is an optional separate process that connects to the
+daemon over D-Bus. It has its own systemd service unit that depends on the
+daemon service.
+
+### Indicator service unit file
+
+The service file is located at `systemd/github-monitor-indicator.service`:
+
+```ini
+[Unit]
+Description=GitHub PR Monitor - Panel Indicator
+After=graphical-session.target github-monitor.service
+Wants=github-monitor.service
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/github-monitor-indicator
+Restart=on-failure
+RestartSec=10
+
+# Security hardening (lighter than daemon — no file writes needed)
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+
+[Install]
+WantedBy=graphical-session.target
+```
+
+#### Key differences from the daemon service
+
+| Aspect | Daemon | Indicator |
+|---|---|---|
+| `After` | `network-online.target dbus.service` | `graphical-session.target github-monitor.service` |
+| `Wants` | `network-online.target` | `github-monitor.service` |
+| `PartOf` | *(none)* | `graphical-session.target` |
+| `WantedBy` | `default.target` | `graphical-session.target` |
+| `ReadWritePaths` | `%h/.config/github-monitor` | *(none — read-only is sufficient)* |
+
+The indicator uses `graphical-session.target` instead of `default.target`
+because it requires a running display server (GTK3). The `PartOf` directive
+means it is stopped when the graphical session ends. The `Wants` directive on
+`github-monitor.service` ensures the daemon starts alongside the indicator, but
+the indicator still starts even if the daemon fails (the indicator auto-reconnects).
+
+### Installing the indicator service
+
+```bash
+# 1. Install the indicator package
+uv tool install '.[indicator]'
+# or: uv sync --extra indicator
+
+# 2. Copy the service file
+cp systemd/github-monitor-indicator.service ~/.config/systemd/user/
+
+# 3. Reload systemd
+systemctl --user daemon-reload
+
+# 4. Enable and start
+systemctl --user enable --now github-monitor-indicator
+```
+
+### Managing the indicator service
+
+```bash
+# Check status
+systemctl --user status github-monitor-indicator
+
+# View logs
+journalctl --user -u github-monitor-indicator -f
+
+# Restart
+systemctl --user restart github-monitor-indicator
+
+# Stop
+systemctl --user stop github-monitor-indicator
+```
+
+### Indicator troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `ExecStart not found` | `github-monitor-indicator` not installed | Install with `uv tool install '.[indicator]'` |
+| `ERROR: GTK 3.0 typelib not found` | Missing GTK3 system packages | `sudo apt install python3-gi gir1.2-gtk-3.0` |
+| `ERROR: AppIndicator3 0.1 typelib not found` | Missing AppIndicator3 typelib | `sudo apt install gir1.2-appindicator3-0.1` |
+| `ERROR: 'gbulb' package not found` | Missing gbulb Python package | `uv sync --extra indicator` |
+| Tray icon shows "disconnected" | Daemon is not running | Start the daemon: `systemctl --user start github-monitor` |
+| No tray icon visible | Desktop environment lacks AppIndicator support | Install a system tray extension (e.g. `gnome-shell-extension-appindicator` for GNOME) |
+
 ## Uninstallation
+
+### Daemon
 
 ```bash
 # Stop and disable the service
@@ -340,6 +434,20 @@ rm ~/.config/systemd/user/github-monitor.service
 
 # Remove any drop-in overrides
 rm -rf ~/.config/systemd/user/github-monitor.service.d/
+
+# Reload systemd
+systemctl --user daemon-reload
+```
+
+### Indicator
+
+```bash
+# Stop and disable the indicator service
+systemctl --user stop github-monitor-indicator
+systemctl --user disable github-monitor-indicator
+
+# Remove the service file
+rm ~/.config/systemd/user/github-monitor-indicator.service
 
 # Reload systemd
 systemctl --user daemon-reload

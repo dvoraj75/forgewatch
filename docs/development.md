@@ -30,10 +30,23 @@ github_monitor/          # Main package
 ├── store.py             # State store
 ├── dbus_service.py      # D-Bus interface
 ├── notifier.py          # Desktop notifications
-└── daemon.py            # Main daemon loop
+├── url_opener.py        # Shared URL opener (XDG portal + xdg-open)
+├── daemon.py            # Main daemon loop
+└── indicator/           # System tray indicator (separate process)
+    ├── __init__.py
+    ├── __main__.py      # Entry point + dependency checks
+    ├── app.py           # Orchestrator (D-Bus client + tray + window)
+    ├── client.py        # D-Bus client for daemon communication
+    ├── tray.py          # AppIndicator3 system tray icon
+    ├── window.py        # GTK3 popup window with PR list
+    ├── models.py        # PRInfo + DaemonStatus dataclasses
+    ├── _tray_state.py   # Pure icon/label logic (no GTK imports)
+    ├── _window_helpers.py  # Pure helpers (relative time, sorting, escaping)
+    └── resources/       # Tray icon image files
 
 systemd/
-└── github-monitor.service  # Systemd user service unit
+├── github-monitor.service            # Systemd user service (daemon)
+└── github-monitor-indicator.service  # Systemd user service (indicator)
 
 tests/
 ├── test_config.py       # Config loading and validation
@@ -42,7 +55,11 @@ tests/
 ├── test_dbus_service.py # D-Bus interface
 ├── test_notifier.py     # Desktop notifications
 ├── test_daemon.py       # Daemon lifecycle and integration
-└── test_main.py         # CLI entry point
+├── test_main.py         # CLI entry point
+├── test_indicator_app.py    # Indicator orchestrator
+├── test_indicator_client.py # Indicator D-Bus client
+├── test_indicator_tray.py   # Indicator tray icon
+└── test_indicator_window.py # Indicator popup window + helpers
 ```
 
 ## Running checks
