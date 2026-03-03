@@ -114,12 +114,12 @@ if [[ ! -f "${SCRIPT_DIR}/pyproject.toml" ]]; then
     exit 1
 fi
 
-info "Running: uv tool install . --force"
+info "Running: uv tool install . --force --reinstall"
 if [[ "$install_indicator" == true ]]; then
     info "Including system tray indicator support"
-    uv tool install "${SCRIPT_DIR}" --force --with "gbulb>=0.6"
+    uv tool install "${SCRIPT_DIR}" --force --reinstall --with "gbulb>=0.6"
 else
-    uv tool install "${SCRIPT_DIR}" --force
+    uv tool install "${SCRIPT_DIR}" --force --reinstall
 fi
 
 # Verify the binary is available
@@ -251,8 +251,16 @@ ok "Service file installed to ${SERVICE_DST}"
 info "Reloading systemd user daemon..."
 systemctl --user daemon-reload
 
-info "Enabling and starting ${SERVICE_NAME}..."
-systemctl --user enable --now "${SERVICE_NAME}"
+info "Enabling ${SERVICE_NAME}..."
+systemctl --user enable "${SERVICE_NAME}"
+
+if systemctl --user is-active --quiet "${SERVICE_NAME}" 2>/dev/null; then
+    info "Service is already running — restarting to pick up new version..."
+    systemctl --user restart "${SERVICE_NAME}"
+else
+    info "Starting ${SERVICE_NAME}..."
+    systemctl --user start "${SERVICE_NAME}"
+fi
 
 # Give it a moment to start
 sleep 2
@@ -275,8 +283,16 @@ if [[ "$install_indicator" == true ]]; then
             info "Reloading systemd user daemon..."
             systemctl --user daemon-reload
 
-            info "Enabling and starting ${INDICATOR_SERVICE_NAME}..."
-            systemctl --user enable --now "${INDICATOR_SERVICE_NAME}"
+            info "Enabling ${INDICATOR_SERVICE_NAME}..."
+            systemctl --user enable "${INDICATOR_SERVICE_NAME}"
+
+            if systemctl --user is-active --quiet "${INDICATOR_SERVICE_NAME}" 2>/dev/null; then
+                info "Indicator is already running — restarting to pick up new version..."
+                systemctl --user restart "${INDICATOR_SERVICE_NAME}"
+            else
+                info "Starting ${INDICATOR_SERVICE_NAME}..."
+                systemctl --user start "${INDICATOR_SERVICE_NAME}"
+            fi
 
             # Give it a moment to start
             sleep 2

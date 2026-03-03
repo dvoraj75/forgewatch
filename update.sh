@@ -149,11 +149,11 @@ fi
 
 step 3 "Installing updated package"
 
-info "Running: uv tool install . --force"
+info "Running: uv tool install . --force --reinstall"
 if [[ "$install_indicator" == true ]]; then
-    uv tool install "${SCRIPT_DIR}" --force --with "gbulb>=0.6"
+    uv tool install "${SCRIPT_DIR}" --force --reinstall --with "gbulb>=0.6"
 else
-    uv tool install "${SCRIPT_DIR}" --force
+    uv tool install "${SCRIPT_DIR}" --force --reinstall
 fi
 
 # Verify the binary is available

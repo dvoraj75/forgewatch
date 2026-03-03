@@ -229,7 +229,7 @@ To update manually instead:
 
 ```bash
 git pull
-uv tool install . --force
+uv tool install . --force --reinstall
 cp systemd/github-monitor.service ~/.config/systemd/user/
 systemctl --user daemon-reload
 systemctl --user restart github-monitor
