@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 import shutil
 
-from github_monitor.cli._output import info, ok, warn
+from forgewatch.cli._output import info, ok, warn
 
 
 def check_notify_send() -> bool:

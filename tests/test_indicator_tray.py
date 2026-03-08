@@ -11,7 +11,7 @@ from __future__ import annotations
 import sys
 from unittest.mock import MagicMock
 
-from github_monitor.indicator._tray_state import get_icon_name, get_label, get_tooltip
+from forgewatch.indicator._tray_state import get_icon_name, get_label, get_tooltip
 
 # ---------------------------------------------------------------------------
 # get_icon_name
@@ -25,43 +25,43 @@ class TestGetIconName:
         """Disconnected state always returns the disconnected icon."""
         result = get_icon_name(5, has_review_requested=True, connected=False)
 
-        assert result == "github-monitor-disconnected"
+        assert result == "forgewatch-disconnected"
 
     def test_zero_prs_connected(self) -> None:
         """Zero PRs with a live connection shows the neutral icon."""
         result = get_icon_name(0, has_review_requested=False, connected=True)
 
-        assert result == "github-monitor"
+        assert result == "forgewatch"
 
     def test_has_prs_no_review(self) -> None:
         """PRs present but none requesting review shows the active icon."""
         result = get_icon_name(3, has_review_requested=False, connected=True)
 
-        assert result == "github-monitor-active"
+        assert result == "forgewatch-active"
 
     def test_has_prs_with_review_requested(self) -> None:
         """PRs with review requested shows the alert icon."""
         result = get_icon_name(2, has_review_requested=True, connected=True)
 
-        assert result == "github-monitor-alert"
+        assert result == "forgewatch-alert"
 
     def test_review_requested_takes_priority_over_active(self) -> None:
         """When both count > 0 and review requested, alert wins over active."""
         result = get_icon_name(1, has_review_requested=True, connected=True)
 
-        assert result == "github-monitor-alert"
+        assert result == "forgewatch-alert"
 
     def test_disconnected_with_zero_prs(self) -> None:
         """Disconnected with zero PRs still shows disconnected icon."""
         result = get_icon_name(0, has_review_requested=False, connected=False)
 
-        assert result == "github-monitor-disconnected"
+        assert result == "forgewatch-disconnected"
 
     def test_zero_prs_with_review_flag_shows_neutral(self) -> None:
         """Zero PRs with review flag set (edge case) shows neutral, not alert."""
         result = get_icon_name(0, has_review_requested=True, connected=True)
 
-        assert result == "github-monitor"
+        assert result == "forgewatch"
 
 
 # ---------------------------------------------------------------------------
@@ -97,49 +97,49 @@ class TestGetTooltip:
         """Disconnected state always shows 'Disconnected'."""
         result = get_tooltip(5, has_review_requested=True, connected=False)
 
-        assert result == "GitHub Monitor \u2014 Disconnected"
+        assert result == "ForgeWatch \u2014 Disconnected"
 
     def test_disconnected_zero_prs(self) -> None:
         """Disconnected with zero PRs still shows 'Disconnected'."""
         result = get_tooltip(0, has_review_requested=False, connected=False)
 
-        assert result == "GitHub Monitor \u2014 Disconnected"
+        assert result == "ForgeWatch \u2014 Disconnected"
 
     def test_zero_prs_connected(self) -> None:
         """Zero PRs with a live connection shows 'No open PRs'."""
         result = get_tooltip(0, has_review_requested=False, connected=True)
 
-        assert result == "GitHub Monitor \u2014 No open PRs"
+        assert result == "ForgeWatch \u2014 No open PRs"
 
     def test_single_pr_no_review(self) -> None:
         """Single PR without review uses singular 'PR'."""
         result = get_tooltip(1, has_review_requested=False, connected=True)
 
-        assert result == "GitHub Monitor \u2014 1 open PR"
+        assert result == "ForgeWatch \u2014 1 open PR"
 
     def test_multiple_prs_no_review(self) -> None:
         """Multiple PRs without review uses plural 'PRs'."""
         result = get_tooltip(3, has_review_requested=False, connected=True)
 
-        assert result == "GitHub Monitor \u2014 3 open PRs"
+        assert result == "ForgeWatch \u2014 3 open PRs"
 
     def test_single_pr_with_review(self) -> None:
         """Single PR with review requested appends the review suffix."""
         result = get_tooltip(1, has_review_requested=True, connected=True)
 
-        assert result == "GitHub Monitor \u2014 1 open PR (review requested)"
+        assert result == "ForgeWatch \u2014 1 open PR (review requested)"
 
     def test_multiple_prs_with_review(self) -> None:
         """Multiple PRs with review requested appends the review suffix."""
         result = get_tooltip(5, has_review_requested=True, connected=True)
 
-        assert result == "GitHub Monitor \u2014 5 open PRs (review requested)"
+        assert result == "ForgeWatch \u2014 5 open PRs (review requested)"
 
     def test_zero_prs_with_review_flag(self) -> None:
         """Zero PRs with review flag (edge case) shows 'No open PRs'."""
         result = get_tooltip(0, has_review_requested=True, connected=True)
 
-        assert result == "GitHub Monitor \u2014 No open PRs"
+        assert result == "ForgeWatch \u2014 No open PRs"
 
 
 # ---------------------------------------------------------------------------
@@ -154,9 +154,9 @@ for _mod in ("gi", "gi.repository"):
     sys.modules[_mod] = _gi_stub  # type: ignore[assignment]
 
 # Evict any cached import so tray.py re-imports with the stubbed gi.
-sys.modules.pop("github_monitor.indicator.tray", None)
+sys.modules.pop("forgewatch.indicator.tray", None)
 
-from github_monitor.indicator.tray import TrayIcon  # noqa: E402
+from forgewatch.indicator.tray import TrayIcon  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # TrayIcon — construction
@@ -218,9 +218,9 @@ class TestTrayIconSetPrCount:
 
         # Last call to set_icon_full should use the neutral icon name
         icon_call = tray._indicator.set_icon_full.call_args
-        assert icon_call[0][0] == "github-monitor"
+        assert icon_call[0][0] == "forgewatch"
         # Tooltip should reflect zero PRs
-        tray._indicator.set_title.assert_called_with("GitHub Monitor \u2014 No open PRs")
+        tray._indicator.set_title.assert_called_with("ForgeWatch \u2014 No open PRs")
 
     def test_review_requested_shows_alert_icon(self) -> None:
         tray = TrayIcon(MagicMock(), MagicMock(), MagicMock())
@@ -229,9 +229,9 @@ class TestTrayIconSetPrCount:
         tray.set_pr_count(3, has_review_requested=True)
 
         icon_call = tray._indicator.set_icon_full.call_args
-        assert icon_call[0][0] == "github-monitor-alert"
+        assert icon_call[0][0] == "forgewatch-alert"
         # Tooltip should include the review-requested suffix
-        tray._indicator.set_title.assert_called_with("GitHub Monitor \u2014 3 open PRs (review requested)")
+        tray._indicator.set_title.assert_called_with("ForgeWatch \u2014 3 open PRs (review requested)")
 
 
 # ---------------------------------------------------------------------------
@@ -249,7 +249,7 @@ class TestTrayIconSetConnected:
 
         assert tray._connected is True
         tray._indicator.set_icon_full.assert_called()
-        tray._indicator.set_title.assert_called_with("GitHub Monitor \u2014 No open PRs")
+        tray._indicator.set_title.assert_called_with("ForgeWatch \u2014 No open PRs")
 
     def test_disconnected_shows_disconnected_icon(self) -> None:
         tray = TrayIcon(MagicMock(), MagicMock(), MagicMock())
@@ -257,8 +257,8 @@ class TestTrayIconSetConnected:
         tray.set_connected(connected=False)
 
         icon_call = tray._indicator.set_icon_full.call_args
-        assert icon_call[0][0] == "github-monitor-disconnected"
-        tray._indicator.set_title.assert_called_with("GitHub Monitor \u2014 Disconnected")
+        assert icon_call[0][0] == "forgewatch-disconnected"
+        tray._indicator.set_title.assert_called_with("ForgeWatch \u2014 Disconnected")
 
 
 # ---------------------------------------------------------------------------

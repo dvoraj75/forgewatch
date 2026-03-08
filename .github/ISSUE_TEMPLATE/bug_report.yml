@@ -1,5 +1,5 @@
 name: Bug Report
-description: Report a bug in github-monitor
+description: Report a bug in ForgeWatch
 labels: ["bug"]
 body:
   - type: textarea
@@ -16,7 +16,7 @@ body:
       description: How can we reproduce the issue?
       placeholder: |
         1. Configure with ...
-        2. Run `uv run github-monitor ...`
+        2. Run `uv run forgewatch ...`
         3. See error ...
     validations:
       required: true

@@ -1,4 +1,4 @@
-"""Tests for github_monitor.poller."""
+"""Tests for forgewatch.poller."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import aiohttp
 import pytest
 from aioresponses import CallbackResult, aioresponses
 
-from github_monitor.poller import (
+from forgewatch.poller import (
     AuthError,
     GitHubClient,
     _parse_pr,
@@ -579,7 +579,7 @@ class TestRateLimitFallbackWait:
 
         with (
             aioresponses() as m,
-            patch("github_monitor.poller.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+            patch("forgewatch.poller.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
         ):
             m.get(SEARCH_URL_RE, payload=_search_response([]))
             await client.fetch_review_requested()

@@ -1,4 +1,4 @@
-"""Tests for github_monitor.cli.setup."""
+"""Tests for forgewatch.cli.setup."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ import stat
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from github_monitor.cli.setup import (
+from forgewatch.cli.setup import (
     _config_wizard,
     _format_repos_toml,
     _print_summary,
@@ -53,12 +53,12 @@ class TestWriteConfig:
     """Verify config file creation, content, and permissions."""
 
     def test_creates_directory_and_file(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_path = config_dir / "config.toml"
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
         ):
             _write_config("ghp_abc123", "testuser", 300, [])
 
@@ -66,12 +66,12 @@ class TestWriteConfig:
         assert config_path.exists()
 
     def test_file_content_matches_template(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_path = config_dir / "config.toml"
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
         ):
             _write_config("ghp_token", "alice", 600, ["org/repo1", "org/repo2"])
 
@@ -82,12 +82,12 @@ class TestWriteConfig:
         assert 'repos = ["org/repo1", "org/repo2"]' in content
 
     def test_file_content_empty_repos(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_path = config_dir / "config.toml"
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
         ):
             _write_config("ghp_token", "bob", 300, [])
 
@@ -95,12 +95,12 @@ class TestWriteConfig:
         assert "repos = []" in content
 
     def test_file_permissions_600(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_path = config_dir / "config.toml"
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
         ):
             _write_config("ghp_token", "user", 300, [])
 
@@ -108,13 +108,13 @@ class TestWriteConfig:
         assert mode & 0o777 == stat.S_IRUSR | stat.S_IWUSR  # 0o600
 
     def test_existing_directory_no_error(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_dir.mkdir()
         config_path = config_dir / "config.toml"
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
         ):
             _write_config("ghp_token", "user", 300, [])
 
@@ -130,15 +130,15 @@ class TestConfigWizard:
     """Verify the interactive config wizard flow."""
 
     def test_prompts_and_writes_config(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_path = config_dir / "config.toml"
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
-            patch("github_monitor.cli.setup.ask_string", side_effect=["ghp_abc", "myuser"]),
-            patch("github_monitor.cli.setup.ask_int", return_value=120),
-            patch("github_monitor.cli.setup.ask_list", return_value=["org/repo"]),
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.ask_string", side_effect=["ghp_abc", "myuser"]),
+            patch("forgewatch.cli.setup.ask_int", return_value=120),
+            patch("forgewatch.cli.setup.ask_list", return_value=["org/repo"]),
         ):
             _config_wizard()
 
@@ -149,16 +149,16 @@ class TestConfigWizard:
         assert 'repos = ["org/repo"]' in content
 
     def test_existing_config_decline_overwrite(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_dir.mkdir(parents=True)
         config_path = config_dir / "config.toml"
         config_path.write_text("old content", encoding="utf-8")
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
-            patch("github_monitor.cli.setup.ask_yes_no", return_value=False),
-            patch("github_monitor.cli.setup.ask_string") as mock_ask_string,
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.ask_yes_no", return_value=False),
+            patch("forgewatch.cli.setup.ask_string") as mock_ask_string,
         ):
             _config_wizard()
 
@@ -168,18 +168,18 @@ class TestConfigWizard:
         assert config_path.read_text(encoding="utf-8") == "old content"
 
     def test_existing_config_accept_overwrite(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_dir.mkdir(parents=True)
         config_path = config_dir / "config.toml"
         config_path.write_text("old content", encoding="utf-8")
 
         with (
-            patch("github_monitor.cli.setup.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.setup.CONFIG_PATH", config_path),
-            patch("github_monitor.cli.setup.ask_yes_no", return_value=True),
-            patch("github_monitor.cli.setup.ask_string", side_effect=["ghp_new", "newuser"]),
-            patch("github_monitor.cli.setup.ask_int", return_value=300),
-            patch("github_monitor.cli.setup.ask_list", return_value=[]),
+            patch("forgewatch.cli.setup.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.setup.CONFIG_PATH", config_path),
+            patch("forgewatch.cli.setup.ask_yes_no", return_value=True),
+            patch("forgewatch.cli.setup.ask_string", side_effect=["ghp_new", "newuser"]),
+            patch("forgewatch.cli.setup.ask_int", return_value=300),
+            patch("forgewatch.cli.setup.ask_list", return_value=[]),
         ):
             _config_wizard()
 
@@ -196,18 +196,18 @@ class TestConfigWizard:
 class TestStartOrRestart:
     """Verify service start vs restart logic."""
 
-    @patch("github_monitor.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._systemd")
     def test_starts_when_inactive(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = False
-        _start_or_restart("github-monitor.service")
-        mock_systemd.start.assert_called_once_with("github-monitor.service")
+        _start_or_restart("forgewatch.service")
+        mock_systemd.start.assert_called_once_with("forgewatch.service")
         mock_systemd.restart.assert_not_called()
 
-    @patch("github_monitor.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._systemd")
     def test_restarts_when_active(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = True
-        _start_or_restart("github-monitor.service")
-        mock_systemd.restart.assert_called_once_with("github-monitor.service")
+        _start_or_restart("forgewatch.service")
+        mock_systemd.restart.assert_called_once_with("forgewatch.service")
         mock_systemd.start.assert_not_called()
 
 
@@ -228,8 +228,8 @@ class TestPrintSummary:
     def test_includes_systemctl_commands(self, capsys: pytest.CaptureFixture[str]) -> None:
         _print_summary(has_gtk=False, has_systemctl=True)
         output = capsys.readouterr().out
-        assert "systemctl --user status github-monitor" in output
-        assert "journalctl --user -u github-monitor" in output
+        assert "systemctl --user status forgewatch" in output
+        assert "journalctl --user -u forgewatch" in output
 
     def test_no_systemctl_commands_when_unavailable(self, capsys: pytest.CaptureFixture[str]) -> None:
         _print_summary(has_gtk=False, has_systemctl=False)
@@ -240,12 +240,12 @@ class TestPrintSummary:
     def test_includes_indicator_commands_when_gtk(self, capsys: pytest.CaptureFixture[str]) -> None:
         _print_summary(has_gtk=True, has_systemctl=True)
         output = capsys.readouterr().out
-        assert "github-monitor-indicator" in output
+        assert "forgewatch-indicator" in output
 
     def test_no_indicator_commands_without_gtk(self, capsys: pytest.CaptureFixture[str]) -> None:
         _print_summary(has_gtk=False, has_systemctl=True)
         output = capsys.readouterr().out
-        assert "github-monitor-indicator" not in output
+        assert "forgewatch-indicator" not in output
 
 
 # ---------------------------------------------------------------------------
@@ -256,9 +256,9 @@ class TestPrintSummary:
 class TestRunSetupFull:
     """Verify the full setup flow (no flags)."""
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_full_flow_calls_all_steps(
         self,
         mock_wizard: MagicMock,
@@ -287,9 +287,9 @@ class TestRunSetupFull:
         mock_systemd.enable.assert_called_once_with(mock_systemd.DAEMON_SERVICE)
         mock_systemd.start.assert_called_once_with(mock_systemd.DAEMON_SERVICE)
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_full_flow_with_gtk(
         self,
         mock_wizard: MagicMock,
@@ -311,9 +311,9 @@ class TestRunSetupFull:
         mock_systemd.enable.assert_any_call(mock_systemd.DAEMON_SERVICE)
         mock_systemd.enable.assert_any_call(mock_systemd.INDICATOR_SERVICE)
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_restart_when_already_active(
         self,
         mock_wizard: MagicMock,
@@ -340,9 +340,9 @@ class TestRunSetupFull:
 class TestRunSetupConfigOnly:
     """Verify --config-only mode."""
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_config_only_skips_systemctl_check(
         self,
         mock_wizard: MagicMock,
@@ -357,9 +357,9 @@ class TestRunSetupConfigOnly:
 
         mock_checks.check_systemctl.assert_not_called()
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_config_only_skips_service_operations(
         self,
         mock_wizard: MagicMock,
@@ -377,9 +377,9 @@ class TestRunSetupConfigOnly:
         mock_systemd.start.assert_not_called()
         mock_systemd.restart.assert_not_called()
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_config_only_runs_wizard(
         self,
         mock_wizard: MagicMock,
@@ -403,9 +403,9 @@ class TestRunSetupConfigOnly:
 class TestRunSetupServiceOnly:
     """Verify --service-only mode."""
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_service_only_skips_wizard(
         self,
         mock_wizard: MagicMock,
@@ -422,9 +422,9 @@ class TestRunSetupServiceOnly:
 
         mock_wizard.assert_not_called()
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_service_only_installs_and_starts(
         self,
         mock_wizard: MagicMock,
@@ -452,9 +452,9 @@ class TestRunSetupServiceOnly:
 class TestRunSetupNoSystemctl:
     """Verify graceful degradation when systemctl is missing."""
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_no_systemctl_skips_service_steps(
         self,
         mock_wizard: MagicMock,
@@ -476,9 +476,9 @@ class TestRunSetupNoSystemctl:
         mock_systemd.enable.assert_not_called()
         mock_systemd.start.assert_not_called()
 
-    @patch("github_monitor.cli.setup._systemd")
-    @patch("github_monitor.cli.setup._checks")
-    @patch("github_monitor.cli.setup._config_wizard")
+    @patch("forgewatch.cli.setup._systemd")
+    @patch("forgewatch.cli.setup._checks")
+    @patch("forgewatch.cli.setup._config_wizard")
     def test_no_systemctl_summary_omits_commands(
         self,
         mock_wizard: MagicMock,

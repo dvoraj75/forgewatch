@@ -1,4 +1,4 @@
-"""Async D-Bus client for the github-monitor daemon.
+"""Async D-Bus client for the forgewatch daemon.
 
 Connects to the session bus, subscribes to the ``PullRequestsChanged``
 signal, and exposes methods to query PR state or trigger a refresh.
@@ -30,9 +30,9 @@ logger = logging.getLogger(__name__)
 # D-Bus coordinates — duplicated from dbus_service.py intentionally
 # because the indicator is a separate process and should not import
 # daemon internals.
-BUS_NAME = "org.github_monitor.Daemon"
-OBJECT_PATH = "/org/github_monitor/Daemon"
-INTERFACE_NAME = "org.github_monitor.Daemon"
+BUS_NAME = "org.forgewatch.Daemon"
+OBJECT_PATH = "/org/forgewatch/Daemon"
+INTERFACE_NAME = "org.forgewatch.Daemon"
 
 _RECONNECT_INTERVAL_S = 10
 
@@ -79,7 +79,7 @@ def _parse_status(json_str: str) -> DaemonStatus:
 
 
 class DaemonClient:
-    """Async D-Bus client for the github-monitor daemon.
+    """Async D-Bus client for the forgewatch daemon.
 
     Connects to the session bus, obtains a proxy for the daemon's D-Bus
     interface, and subscribes to the ``PullRequestsChanged`` signal.

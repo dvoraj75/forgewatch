@@ -5,19 +5,19 @@ import subprocess
 from importlib.resources import files
 from pathlib import Path
 
-from github_monitor.cli._output import ok, warn
+from forgewatch.cli._output import ok, warn
 
 SERVICE_DIR = Path.home() / ".config" / "systemd" / "user"
-DAEMON_SERVICE = "github-monitor.service"
-INDICATOR_SERVICE = "github-monitor-indicator.service"
-_LEGACY_AUTOSTART = Path.home() / ".config" / "autostart" / "github-monitor-indicator.desktop"
+DAEMON_SERVICE = "forgewatch.service"
+INDICATOR_SERVICE = "forgewatch-indicator.service"
+_LEGACY_AUTOSTART = Path.home() / ".config" / "autostart" / "forgewatch-indicator.desktop"
 
 # Placeholders in bundled .service templates that are substituted with
 # the actual executable paths at install time.  This ensures the service
 # files work regardless of whether the package was installed globally
 # (``~/.local/bin``) or inside a virtualenv / uv project.
-_DAEMON_EXEC_PLACEHOLDER = "@@GITHUB_MONITOR_EXEC@@"
-_INDICATOR_EXEC_PLACEHOLDER = "@@GITHUB_MONITOR_INDICATOR_EXEC@@"
+_DAEMON_EXEC_PLACEHOLDER = "@@FORGEWATCH_EXEC@@"
+_INDICATOR_EXEC_PLACEHOLDER = "@@FORGEWATCH_INDICATOR_EXEC@@"
 
 
 def _resolve_exec(name: str) -> str:
@@ -38,7 +38,7 @@ def _resolve_exec(name: str) -> str:
 
 def _read_service_file(name: str) -> str:
     """Read a bundled service file from the package data."""
-    return files("github_monitor.cli.systemd").joinpath(name).read_text(encoding="utf-8")
+    return files("forgewatch.cli.systemd").joinpath(name).read_text(encoding="utf-8")
 
 
 def _run_systemctl(*args: str) -> subprocess.CompletedProcess[bytes]:
@@ -79,13 +79,13 @@ def install_service_files(*, include_indicator: bool = False) -> None:
             previously_enabled.append(svc)
             _run_systemctl("disable", svc)
 
-    daemon_exec = _resolve_exec("github-monitor")
+    daemon_exec = _resolve_exec("forgewatch")
     content = _read_service_file(DAEMON_SERVICE).replace(_DAEMON_EXEC_PLACEHOLDER, daemon_exec)
     (SERVICE_DIR / DAEMON_SERVICE).write_text(content, encoding="utf-8")
     ok(f"Installed {DAEMON_SERVICE}")
 
     if include_indicator:
-        indicator_exec = _resolve_exec("github-monitor-indicator")
+        indicator_exec = _resolve_exec("forgewatch-indicator")
         content = _read_service_file(INDICATOR_SERVICE).replace(_INDICATOR_EXEC_PLACEHOLDER, indicator_exec)
         (SERVICE_DIR / INDICATOR_SERVICE).write_text(content, encoding="utf-8")
         ok(f"Installed {INDICATOR_SERVICE}")

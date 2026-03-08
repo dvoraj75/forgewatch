@@ -1,4 +1,4 @@
-"""Tests for github_monitor.indicator.__main__ — dependency checks and entry point.
+"""Tests for forgewatch.indicator.__main__ — dependency checks and entry point.
 
 The indicator entry point validates that GTK3, AppIndicator3, and gbulb
 are available before launching.  These tests mock the import system and
@@ -29,7 +29,7 @@ def _fresh_import() -> ModuleType:
     Forces a fresh import so that top-level side effects and the
     ``_check_dependencies`` closure capture fresh mocks each time.
     """
-    mod_name = "github_monitor.indicator.__main__"
+    mod_name = "forgewatch.indicator.__main__"
     # Remove from cache so the module re-executes on import.
     sys.modules.pop(mod_name, None)
     return importlib.import_module(mod_name)
@@ -253,7 +253,7 @@ class TestMainRunsApp:
         mock_loop = MagicMock()
 
         # Mock the deferred imports that happen inside main():
-        #   - ``from github_monitor.config import load_config``
+        #   - ``from forgewatch.config import load_config``
         #   - ``import gbulb``
         #   - ``from .app import IndicatorApp``
         mock_config_mod = MagicMock()
@@ -268,8 +268,8 @@ class TestMainRunsApp:
                 "sys.modules",
                 {
                     "gbulb": mock_gbulb,
-                    "github_monitor.config": mock_config_mod,
-                    "github_monitor.indicator.app": mock_app_mod,
+                    "forgewatch.config": mock_config_mod,
+                    "forgewatch.indicator.app": mock_app_mod,
                 },
             ),
             patch("asyncio.new_event_loop", return_value=mock_loop),
@@ -304,8 +304,8 @@ class TestMainVerboseFlag:
                 "sys.modules",
                 {
                     "gbulb": mock_gbulb,
-                    "github_monitor.config": mock_config_mod,
-                    "github_monitor.indicator.app": mock_app_mod,
+                    "forgewatch.config": mock_config_mod,
+                    "forgewatch.indicator.app": mock_app_mod,
                 },
             ),
             patch("asyncio.new_event_loop", return_value=mock_loop),
@@ -338,8 +338,8 @@ class TestMainConfigLoadFailure:
                 "sys.modules",
                 {
                     "gbulb": mock_gbulb,
-                    "github_monitor.config": mock_config_mod,
-                    "github_monitor.indicator.app": mock_app_mod,
+                    "forgewatch.config": mock_config_mod,
+                    "forgewatch.indicator.app": mock_app_mod,
                 },
             ),
             patch("asyncio.new_event_loop", return_value=mock_loop),

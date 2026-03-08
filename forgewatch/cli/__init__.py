@@ -1,4 +1,4 @@
-"""CLI subcommand parser and dispatch for github-monitor management commands."""
+"""CLI subcommand parser and dispatch for forgewatch management commands."""
 
 from __future__ import annotations
 
@@ -58,17 +58,17 @@ def dispatch(args: argparse.Namespace) -> None:
         identifying the subcommand.
     """
     if args.command == "setup":
-        from github_monitor.cli.setup import run_setup  # noqa: PLC0415
+        from forgewatch.cli.setup import run_setup  # noqa: PLC0415
 
         run_setup(config_only=args.config_only, service_only=args.service_only)
 
     elif args.command == "service":
-        from github_monitor.cli.service import run_service  # noqa: PLC0415
+        from forgewatch.cli.service import run_service  # noqa: PLC0415
 
         run_service(action=args.action)
 
     elif args.command == "uninstall":
-        from github_monitor.cli.uninstall import run_uninstall  # noqa: PLC0415
+        from forgewatch.cli.uninstall import run_uninstall  # noqa: PLC0415
 
         run_uninstall()
 
@@ -81,8 +81,8 @@ def build_parser() -> argparse.ArgumentParser:
     tests that need to inspect the parser structure independently.
     """
     parser = argparse.ArgumentParser(
-        prog="github-monitor",
-        description="GitHub PR Monitor",
+        prog="forgewatch",
+        description="ForgeWatch — GitHub PR Monitor",
     )
     subparsers = parser.add_subparsers(dest="command")
     add_subcommands(subparsers)

@@ -5,11 +5,11 @@ from __future__ import annotations
 import shutil
 import sys
 
-from github_monitor.cli import _systemd
-from github_monitor.cli._checks import check_systemctl
-from github_monitor.cli._output import info, ok, step
-from github_monitor.cli._prompts import ask_yes_no
-from github_monitor.config import CONFIG_DIR
+from forgewatch.cli import _systemd
+from forgewatch.cli._checks import check_systemctl
+from forgewatch.cli._output import info, ok, step
+from forgewatch.cli._prompts import ask_yes_no
+from forgewatch.config import CONFIG_DIR
 
 _BOLD = "\033[1m"
 _RESET = "\033[0m"
@@ -56,7 +56,7 @@ def _print_summary() -> None:
         info(f"Config directory was preserved at {CONFIG_DIR}")
         info(f"To remove it manually: rm -rf {CONFIG_DIR}")
 
-    sys.stdout.write("\nTo remove the Python package: pip uninstall github-monitor\n")
+    sys.stdout.write("\nTo remove the Python package: pip uninstall forgewatch\n")
 
 
 def run_uninstall() -> None:
@@ -70,7 +70,7 @@ def run_uninstall() -> None:
     """
     # Banner
     sys.stdout.write(f"\n{_BOLD}==========================================={_RESET}\n")
-    sys.stdout.write(f"{_BOLD} GitHub Monitor Uninstall{_RESET}\n")
+    sys.stdout.write(f"{_BOLD} ForgeWatch Uninstall{_RESET}\n")
     sys.stdout.write(f"{_BOLD}==========================================={_RESET}\n\n")
 
     has_systemctl = check_systemctl()

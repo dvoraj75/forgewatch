@@ -1,8 +1,8 @@
-"""Entry point for the github-monitor indicator (system tray icon).
+"""Entry point for the forgewatch indicator (system tray icon).
 
 Run with::
 
-    python -m github_monitor.indicator
+    python -m forgewatch.indicator
 
 This module checks for required dependencies before importing any
 indicator code, and prints actionable error messages if something is
@@ -88,7 +88,7 @@ def main() -> None:
     import asyncio  # noqa: PLC0415
     import logging  # noqa: PLC0415
 
-    parser = argparse.ArgumentParser(description="GitHub Monitor panel indicator")
+    parser = argparse.ArgumentParser(description="ForgeWatch panel indicator")
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable debug logging")
     args = parser.parse_args()
 
@@ -103,7 +103,7 @@ def main() -> None:
     # Load icon_theme from config (best-effort: default to "light" on failure).
     icon_theme = "light"
     try:
-        from github_monitor.config import load_config  # noqa: PLC0415
+        from forgewatch.config import load_config  # noqa: PLC0415
 
         cfg = load_config()
         icon_theme = cfg.icon_theme

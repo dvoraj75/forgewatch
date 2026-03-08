@@ -1,4 +1,4 @@
-"""Tests for github_monitor.dbus_service."""
+"""Tests for forgewatch.dbus_service."""
 
 from __future__ import annotations
 
@@ -10,18 +10,18 @@ from unittest.mock import AsyncMock, MagicMock, patch
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
 
-from github_monitor.dbus_service import (
+from forgewatch.dbus_service import (
     BUS_NAME,
     INTERFACE_NAME,
     OBJECT_PATH,
-    GithubMonitorInterface,
+    ForgewatchInterface,
     _serialize_pr,
     _serialize_prs,
     _serialize_status,
     setup_dbus,
 )
-from github_monitor.poller import PullRequest
-from github_monitor.store import PRStore, StoreStatus
+from forgewatch.poller import PullRequest
+from forgewatch.store import PRStore, StoreStatus
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -66,13 +66,13 @@ def _unwrap_signal(bound_method: Any) -> Any:
 def _make_interface(
     store: PRStore | None = None,
     poll_callback: Callable[[], Awaitable[None]] | None = None,
-) -> GithubMonitorInterface:
-    """Build a GithubMonitorInterface with optional overrides."""
+) -> ForgewatchInterface:
+    """Build a ForgewatchInterface with optional overrides."""
     if store is None:
         store = PRStore()
     if poll_callback is None:
         poll_callback = AsyncMock()
-    return GithubMonitorInterface(store, poll_callback)
+    return ForgewatchInterface(store, poll_callback)
 
 
 # ---------------------------------------------------------------------------
@@ -82,13 +82,13 @@ def _make_interface(
 
 class TestConstants:
     def test_bus_name(self) -> None:
-        assert BUS_NAME == "org.github_monitor.Daemon"
+        assert BUS_NAME == "org.forgewatch.Daemon"
 
     def test_object_path(self) -> None:
-        assert OBJECT_PATH == "/org/github_monitor/Daemon"
+        assert OBJECT_PATH == "/org/forgewatch/Daemon"
 
     def test_interface_name(self) -> None:
-        assert INTERFACE_NAME == "org.github_monitor.Daemon"
+        assert INTERFACE_NAME == "org.forgewatch.Daemon"
 
 
 # ---------------------------------------------------------------------------
@@ -190,7 +190,7 @@ class TestSerializeStatus:
 
 
 # ---------------------------------------------------------------------------
-# GithubMonitorInterface — construction
+# ForgewatchInterface — construction
 # ---------------------------------------------------------------------------
 
 
@@ -202,14 +202,14 @@ class TestInterfaceConstruction:
     def test_stores_references(self) -> None:
         store = PRStore()
         callback = AsyncMock()
-        iface = GithubMonitorInterface(store, callback)
+        iface = ForgewatchInterface(store, callback)
 
         assert iface._store is store
         assert iface._poll_callback is callback
 
 
 # ---------------------------------------------------------------------------
-# GithubMonitorInterface — GetPullRequests
+# ForgewatchInterface — GetPullRequests
 # ---------------------------------------------------------------------------
 
 
@@ -243,7 +243,7 @@ class TestGetPullRequests:
 
 
 # ---------------------------------------------------------------------------
-# GithubMonitorInterface — GetStatus
+# ForgewatchInterface — GetStatus
 # ---------------------------------------------------------------------------
 
 
@@ -267,7 +267,7 @@ class TestGetStatus:
 
 
 # ---------------------------------------------------------------------------
-# GithubMonitorInterface — Refresh
+# ForgewatchInterface — Refresh
 # ---------------------------------------------------------------------------
 
 
@@ -305,7 +305,7 @@ class TestRefresh:
 
 
 # ---------------------------------------------------------------------------
-# GithubMonitorInterface — PullRequestsChanged signal
+# ForgewatchInterface — PullRequestsChanged signal
 # ---------------------------------------------------------------------------
 
 
@@ -358,7 +358,7 @@ class TestSetupDbus:
         mock_bus_class.return_value.connect = AsyncMock(return_value=mock_bus)
 
         with patch(
-            "github_monitor.dbus_service.MessageBus",
+            "forgewatch.dbus_service.MessageBus",
             mock_bus_class,
         ):
             store = PRStore()
@@ -366,7 +366,7 @@ class TestSetupDbus:
             bus, interface = await setup_dbus(store, callback)
 
         assert bus is mock_bus
-        assert isinstance(interface, GithubMonitorInterface)
+        assert isinstance(interface, ForgewatchInterface)
 
     async def test_exports_at_correct_path(self) -> None:
         mock_bus = MagicMock()
@@ -377,7 +377,7 @@ class TestSetupDbus:
         mock_bus_class.return_value.connect = AsyncMock(return_value=mock_bus)
 
         with patch(
-            "github_monitor.dbus_service.MessageBus",
+            "forgewatch.dbus_service.MessageBus",
             mock_bus_class,
         ):
             await setup_dbus(PRStore(), AsyncMock())
@@ -385,7 +385,7 @@ class TestSetupDbus:
         mock_bus.export.assert_called_once()
         call_args = mock_bus.export.call_args
         assert call_args[0][0] == OBJECT_PATH
-        assert isinstance(call_args[0][1], GithubMonitorInterface)
+        assert isinstance(call_args[0][1], ForgewatchInterface)
 
     async def test_requests_correct_bus_name(self) -> None:
         mock_bus = MagicMock()
@@ -396,7 +396,7 @@ class TestSetupDbus:
         mock_bus_class.return_value.connect = AsyncMock(return_value=mock_bus)
 
         with patch(
-            "github_monitor.dbus_service.MessageBus",
+            "forgewatch.dbus_service.MessageBus",
             mock_bus_class,
         ):
             await setup_dbus(PRStore(), AsyncMock())

@@ -1,4 +1,4 @@
-"""Tests for github_monitor.notifier."""
+"""Tests for forgewatch.notifier."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
 
-from github_monitor.notifier import (
+from forgewatch.notifier import (
     _BATCH_BODY_LIMIT,
     _INDIVIDUAL_THRESHOLD,
     _download_avatar,
@@ -17,7 +17,7 @@ from github_monitor.notifier import (
     _wait_and_open,
     notify_new_prs,
 )
-from github_monitor.poller import PullRequest
+from forgewatch.poller import PullRequest
 from tests.conftest import _mock_process
 
 # ---------------------------------------------------------------------------
@@ -59,7 +59,7 @@ class TestNotifyNewPrsEmpty:
     """notify_new_prs should be a no-op for an empty list."""
 
     async def test_empty_list_does_nothing(self) -> None:
-        with patch("github_monitor.notifier.asyncio.create_subprocess_exec") as mock_exec:
+        with patch("forgewatch.notifier.asyncio.create_subprocess_exec") as mock_exec:
             await notify_new_prs([])
             mock_exec.assert_not_called()
 
@@ -77,9 +77,9 @@ class TestNotifyNewPrsIndividual:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -88,7 +88,7 @@ class TestNotifyNewPrsIndividual:
             mock_exec.assert_called_once()
             args = mock_exec.call_args[0]
             assert "notify-send" in args
-            assert "--app-name=github-monitor" in args
+            assert "--app-name=forgewatch" in args
             assert "PR Review: acme/web" in args
             assert "#42 Add login page\nby bob" in args
 
@@ -97,9 +97,9 @@ class TestNotifyNewPrsIndividual:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -113,9 +113,9 @@ class TestNotifyNewPrsIndividual:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -128,9 +128,9 @@ class TestNotifyNewPrsIndividual:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -144,9 +144,9 @@ class TestNotifyNewPrsIndividual:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -162,9 +162,9 @@ class TestNotifyNewPrsIndividual:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value="/tmp/avatar.png"),
+            patch("forgewatch.notifier._download_avatar", return_value="/tmp/avatar.png"),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -179,9 +179,9 @@ class TestNotifyNewPrsIndividual:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -205,7 +205,7 @@ class TestNotifyNewPrsBatch:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await notify_new_prs(prs)
@@ -217,7 +217,7 @@ class TestNotifyNewPrsBatch:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await notify_new_prs(prs)
@@ -230,7 +230,7 @@ class TestNotifyNewPrsBatch:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await notify_new_prs(prs)
@@ -246,7 +246,7 @@ class TestNotifyNewPrsBatch:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await notify_new_prs(prs)
@@ -266,7 +266,7 @@ class TestNotifyNewPrsBatch:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await notify_new_prs(prs)
@@ -287,19 +287,19 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body")
 
             args = mock_exec.call_args[0]
-            assert "--app-name=github-monitor" in args
+            assert "--app-name=forgewatch" in args
 
     async def test_includes_default_icon(self) -> None:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body")
@@ -311,7 +311,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body", icon="/tmp/avatar.png")
@@ -324,7 +324,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body")
@@ -336,7 +336,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body", urgency="critical")
@@ -348,7 +348,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("My Title", "My Body")
@@ -362,7 +362,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body", url="https://github.com/owner/repo/pull/1")
@@ -376,7 +376,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body")
@@ -389,7 +389,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body", url="https://github.com/owner/repo/pull/1")
@@ -402,7 +402,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body")
@@ -414,7 +414,7 @@ class TestSendNotificationCommand:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await _send_notification("title", "body")
@@ -436,10 +436,10 @@ class TestSendNotificationErrors:
 
         with (
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ),
-            patch("github_monitor.notifier.logger") as mock_logger,
+            patch("forgewatch.notifier.logger") as mock_logger,
         ):
             await _send_notification("title", "body")
 
@@ -452,10 +452,10 @@ class TestSendNotificationErrors:
     async def test_file_not_found_logs_warning(self) -> None:
         with (
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 side_effect=FileNotFoundError,
             ),
-            patch("github_monitor.notifier.logger") as mock_logger,
+            patch("forgewatch.notifier.logger") as mock_logger,
         ):
             await _send_notification("title", "body")
 
@@ -468,7 +468,7 @@ class TestSendNotificationErrors:
         proc = _mock_process(returncode=1, stderr=b"error")
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ):
             # Should complete without raising
@@ -477,7 +477,7 @@ class TestSendNotificationErrors:
     async def test_file_not_found_does_not_raise(self) -> None:
         """Missing notify-send should not propagate."""
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             side_effect=FileNotFoundError,
         ):
             # Should complete without raising
@@ -495,7 +495,7 @@ class TestWaitAndOpen:
     async def test_opens_url_when_action_is_open(self) -> None:
         proc = _mock_process(stdout=b"open\n")
 
-        with patch("github_monitor.notifier.open_url", new_callable=AsyncMock) as mock_open:
+        with patch("forgewatch.notifier.open_url", new_callable=AsyncMock) as mock_open:
             await _wait_and_open(proc, "https://github.com/owner/repo/pull/1")
             mock_open.assert_awaited_once_with("https://github.com/owner/repo/pull/1")
 
@@ -503,14 +503,14 @@ class TestWaitAndOpen:
         """Notification expired without click — no URL should be opened."""
         proc = _mock_process(stdout=b"")
 
-        with patch("github_monitor.notifier.open_url", new_callable=AsyncMock) as mock_open:
+        with patch("forgewatch.notifier.open_url", new_callable=AsyncMock) as mock_open:
             await _wait_and_open(proc, "https://github.com/owner/repo/pull/1")
             mock_open.assert_not_awaited()
 
     async def test_does_not_open_url_on_nonzero_exit(self) -> None:
         proc = _mock_process(returncode=1, stderr=b"error", stdout=b"open\n")
 
-        with patch("github_monitor.notifier.open_url", new_callable=AsyncMock) as mock_open:
+        with patch("forgewatch.notifier.open_url", new_callable=AsyncMock) as mock_open:
             await _wait_and_open(proc, "https://github.com/owner/repo/pull/1")
             mock_open.assert_not_awaited()
 
@@ -549,7 +549,7 @@ class TestDownloadAvatar:
         mock_session.get.return_value = mock_cm
 
         # Clear module-level cache to force download
-        from github_monitor.notifier import _avatar_cache
+        from forgewatch.notifier import _avatar_cache
 
         _avatar_cache.clear()
         result = await _download_avatar("https://avatars.githubusercontent.com/u/99999", mock_session)
@@ -568,7 +568,7 @@ class TestDownloadAvatar:
         mock_session = MagicMock()
         mock_session.get.return_value = mock_cm
 
-        from github_monitor.notifier import _avatar_cache
+        from forgewatch.notifier import _avatar_cache
 
         _avatar_cache.clear()
         result = await _download_avatar("https://avatars.githubusercontent.com/u/missing", mock_session)
@@ -583,7 +583,7 @@ class TestDownloadAvatar:
         mock_session = MagicMock()
         mock_session.get.return_value = mock_cm
 
-        from github_monitor.notifier import _avatar_cache
+        from forgewatch.notifier import _avatar_cache
 
         _avatar_cache.clear()
         result = await _download_avatar("https://avatars.githubusercontent.com/u/error", mock_session)
@@ -620,7 +620,7 @@ class TestNotifyCustomThreshold:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await notify_new_prs(prs, threshold=1)
@@ -636,9 +636,9 @@ class TestNotifyCustomThreshold:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -660,9 +660,9 @@ class TestNotifyCustomUrgency:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -676,7 +676,7 @@ class TestNotifyCustomUrgency:
         proc = _mock_process()
 
         with patch(
-            "github_monitor.notifier.asyncio.create_subprocess_exec",
+            "forgewatch.notifier.asyncio.create_subprocess_exec",
             return_value=proc,
         ) as mock_exec:
             await notify_new_prs(prs, urgency="low")
@@ -689,9 +689,9 @@ class TestNotifyCustomUrgency:
         proc = _mock_process()
 
         with (
-            patch("github_monitor.notifier._download_avatar", return_value=None),
+            patch("forgewatch.notifier._download_avatar", return_value=None),
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
         ):
@@ -711,7 +711,7 @@ class TestDownloadAvatarCacheHit:
 
     async def test_cache_hit_skips_download(self, tmp_path: Path) -> None:
         """Calling _download_avatar twice for the same URL should only fetch once."""
-        from github_monitor import notifier
+        from forgewatch import notifier
 
         avatar_url = "https://avatars.githubusercontent.com/u/cache-test-1"
 
@@ -741,7 +741,7 @@ class TestDownloadAvatarCacheHit:
 
     async def test_cache_stale_file_redownloads(self, tmp_path: Path) -> None:
         """If the cached file was deleted from disk, re-download it."""
-        from github_monitor import notifier
+        from forgewatch import notifier
 
         avatar_url = "https://avatars.githubusercontent.com/u/cache-stale-1"
 
@@ -777,7 +777,7 @@ class TestDownloadAvatarDiskCache:
         """File exists on disk (from a previous daemon run) — reuse without HTTP."""
         import hashlib
 
-        from github_monitor import notifier
+        from forgewatch import notifier
 
         avatar_url = "https://avatars.githubusercontent.com/u/disk-cache-1"
         url_hash = hashlib.md5(avatar_url.encode()).hexdigest()  # noqa: S324
@@ -796,7 +796,7 @@ class TestDownloadAvatarDiskCache:
 
     async def test_write_failure_returns_none(self, tmp_path: Path) -> None:
         """If writing avatar bytes to disk fails, return None."""
-        from github_monitor import notifier
+        from forgewatch import notifier
 
         avatar_url = "https://avatars.githubusercontent.com/u/write-fail-1"
 
@@ -834,11 +834,11 @@ class TestSendNotificationBackgroundTask:
 
         with (
             patch(
-                "github_monitor.notifier.asyncio.create_subprocess_exec",
+                "forgewatch.notifier.asyncio.create_subprocess_exec",
                 return_value=proc,
             ),
-            patch("github_monitor.notifier._wait_and_open", new_callable=AsyncMock) as mock_wait,
-            patch("github_monitor.notifier.asyncio.create_task") as mock_create_task,
+            patch("forgewatch.notifier._wait_and_open", new_callable=AsyncMock) as mock_wait,
+            patch("forgewatch.notifier.asyncio.create_task") as mock_create_task,
         ):
             await _send_notification("title", "body", url="https://example.com/pr/1")
 

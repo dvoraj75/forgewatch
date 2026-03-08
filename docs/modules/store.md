@@ -1,6 +1,6 @@
 # `store.py` — API reference
 
-Module: `github_monitor.store`
+Module: `forgewatch.store`
 
 In-memory state management for tracked pull requests. Computes diffs between
 poll cycles to identify new, updated, and closed PRs.
@@ -94,7 +94,7 @@ Remove all stored PRs and reset `last_updated` to `None`. A subsequent
 ## Usage example
 
 ```python
-from github_monitor.store import PRStore
+from forgewatch.store import PRStore
 
 store = PRStore()
 

@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import sys
 
-from github_monitor.cli import _checks, _systemd
-from github_monitor.cli._output import info, ok, step
-from github_monitor.cli._prompts import ask_int, ask_list, ask_string, ask_yes_no
-from github_monitor.config import CONFIG_DIR, CONFIG_PATH
+from forgewatch.cli import _checks, _systemd
+from forgewatch.cli._output import info, ok, step
+from forgewatch.cli._prompts import ask_int, ask_list, ask_string, ask_yes_no
+from forgewatch.config import CONFIG_DIR, CONFIG_PATH
 
 _BOLD = "\033[1m"
 _RESET = "\033[0m"
@@ -58,7 +58,7 @@ def _config_wizard() -> None:
         return
 
     sys.stdout.write("\n")
-    info("Let's configure github-monitor.")
+    info("Let's configure forgewatch.")
     info("You'll need a GitHub personal access token with 'repo' scope.")
     info("Create one at: https://github.com/settings/tokens")
     sys.stdout.write("\n")
@@ -103,14 +103,14 @@ def _print_summary(*, has_gtk: bool, has_systemctl: bool) -> None:
 
     if has_systemctl:
         sys.stdout.write("\nUseful commands:\n")
-        sys.stdout.write("  systemctl --user status github-monitor       # check status\n")
-        sys.stdout.write("  systemctl --user reload github-monitor       # reload config\n")
-        sys.stdout.write("  systemctl --user restart github-monitor      # full restart\n")
-        sys.stdout.write("  journalctl --user -u github-monitor -f       # follow logs\n")
+        sys.stdout.write("  systemctl --user status forgewatch       # check status\n")
+        sys.stdout.write("  systemctl --user reload forgewatch       # reload config\n")
+        sys.stdout.write("  systemctl --user restart forgewatch      # full restart\n")
+        sys.stdout.write("  journalctl --user -u forgewatch -f       # follow logs\n")
         if has_gtk:
-            sys.stdout.write("  systemctl --user status github-monitor-indicator   # indicator status\n")
-            sys.stdout.write("  systemctl --user restart github-monitor-indicator  # restart indicator\n")
-            sys.stdout.write("  journalctl --user -u github-monitor-indicator -f   # indicator logs\n")
+            sys.stdout.write("  systemctl --user status forgewatch-indicator   # indicator status\n")
+            sys.stdout.write("  systemctl --user restart forgewatch-indicator  # restart indicator\n")
+            sys.stdout.write("  journalctl --user -u forgewatch-indicator -f   # indicator logs\n")
 
 
 def run_setup(*, config_only: bool = False, service_only: bool = False) -> None:
@@ -124,7 +124,7 @@ def run_setup(*, config_only: bool = False, service_only: bool = False) -> None:
     """
     # Banner
     sys.stdout.write(f"\n{_BOLD}==========================================={_RESET}\n")
-    sys.stdout.write(f"{_BOLD} GitHub Monitor Setup{_RESET}\n")
+    sys.stdout.write(f"{_BOLD} ForgeWatch Setup{_RESET}\n")
     sys.stdout.write(f"{_BOLD}==========================================={_RESET}\n\n")
 
     # Compute total steps based on mode
@@ -150,7 +150,7 @@ def run_setup(*, config_only: bool = False, service_only: bool = False) -> None:
 
     # Step: Config wizard (skipped for --service-only)
     if not service_only:
-        step(current, total, "Configuring github-monitor")
+        step(current, total, "Configuring forgewatch")
         _config_wizard()
         current += 1
 

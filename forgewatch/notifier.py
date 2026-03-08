@@ -37,7 +37,7 @@ _BATCH_BODY_LIMIT = 5
 _AVATAR_SIZE = 64
 
 # Directory for cached avatar files — use XDG_CACHE_HOME (default ~/.cache)
-_AVATAR_CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "github-monitor" / "avatars"
+_AVATAR_CACHE_DIR = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "forgewatch" / "avatars"
 
 # In-memory cache: avatar_url -> local file path
 _avatar_cache: dict[str, Path] = {}
@@ -176,7 +176,7 @@ async def _send_notification(
     icon_arg = f"--icon={icon}" if icon else "--icon=github"
     cmd = [
         "notify-send",
-        "--app-name=github-monitor",
+        "--app-name=forgewatch",
         f"--urgency={urgency}",
         icon_arg,
     ]

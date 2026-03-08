@@ -1,4 +1,4 @@
-"""Tests for github_monitor.config."""
+"""Tests for forgewatch.config."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from github_monitor.config import Config, ConfigError, load_config
+from forgewatch.config import Config, ConfigError, load_config
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -92,11 +92,11 @@ def test_env_github_token_overrides_file(
     assert cfg.github_token == "ghp_from_env"
 
 
-def test_env_github_monitor_config_path(
+def test_env_forgewatch_config_path(
     config_file: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setenv("GITHUB_MONITOR_CONFIG", str(config_file))
+    monkeypatch.setenv("FORGEWATCH_CONFIG", str(config_file))
     # Call without explicit path — should pick up env var
     cfg = load_config()
     assert cfg.github_username == "testuser"

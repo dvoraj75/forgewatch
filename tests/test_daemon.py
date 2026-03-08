@@ -1,4 +1,4 @@
-"""Tests for github_monitor.daemon."""
+"""Tests for forgewatch.daemon."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from github_monitor.config import Config
-from github_monitor.daemon import Daemon
-from github_monitor.poller import PullRequest
-from github_monitor.store import StateDiff
+from forgewatch.config import Config
+from forgewatch.daemon import Daemon
+from forgewatch.poller import PullRequest
+from forgewatch.store import StateDiff
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -145,7 +145,7 @@ class TestPollOnce:
         daemon.interface = MagicMock()
         daemon._first_poll = False
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_awaited_once_with(
                 prs,
@@ -160,7 +160,7 @@ class TestPollOnce:
         daemon.interface = MagicMock()
         assert daemon._first_poll is True
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_not_awaited()
 
@@ -215,7 +215,7 @@ class TestPollOnce:
         daemon.interface = MagicMock()
         daemon._first_poll = False
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_not_awaited()
 
@@ -239,7 +239,7 @@ class TestPollOnce:
         daemon.interface = MagicMock()
 
         # Should not raise
-        with patch("github_monitor.daemon.logger") as mock_logger:
+        with patch("forgewatch.daemon.logger") as mock_logger:
             await daemon._poll_once()
             mock_logger.exception.assert_called_once()
 
@@ -298,7 +298,7 @@ class TestReloadConfig:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config) as mock_load:
+        with patch("forgewatch.daemon.load_config", return_value=new_config) as mock_load:
             await daemon._reload_config()
 
         mock_load.assert_called_once_with(None)
@@ -333,7 +333,7 @@ class TestReloadConfig:
         daemon.client.start = mock_start  # type: ignore[method-assign]
         daemon.client.update_config = mock_update  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config):
+        with patch("forgewatch.daemon.load_config", return_value=new_config):
             await daemon._reload_config()
 
         assert call_order == ["close", "update_config", "start"]
@@ -343,8 +343,8 @@ class TestReloadConfig:
         original_config = daemon.config
 
         with (
-            patch("github_monitor.daemon.load_config", side_effect=FileNotFoundError("missing")),
-            patch("github_monitor.daemon.logger") as mock_logger,
+            patch("forgewatch.daemon.load_config", side_effect=FileNotFoundError("missing")),
+            patch("forgewatch.daemon.logger") as mock_logger,
         ):
             await daemon._reload_config()
 
@@ -353,13 +353,13 @@ class TestReloadConfig:
         assert daemon.config is original_config
 
     async def test_reload_passes_config_path_to_load_config(self) -> None:
-        custom_path = Path("/etc/github-monitor/config.toml")
+        custom_path = Path("/etc/forgewatch/config.toml")
         daemon = Daemon(_make_config(), config_path=custom_path)
         new_config = _make_config(github_token="ghp_reloaded")
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config) as mock_load:
+        with patch("forgewatch.daemon.load_config", return_value=new_config) as mock_load:
             await daemon._reload_config()
 
         mock_load.assert_called_once_with(custom_path)
@@ -370,7 +370,7 @@ class TestReloadConfig:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config) as mock_load:
+        with patch("forgewatch.daemon.load_config", return_value=new_config) as mock_load:
             await daemon._reload_config()
 
         mock_load.assert_called_once_with(None)
@@ -384,7 +384,7 @@ class TestReloadConfig:
 
         assert not daemon._reload_event.is_set()
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config):
+        with patch("forgewatch.daemon.load_config", return_value=new_config):
             await daemon._reload_config()
 
         assert daemon._reload_event.is_set()
@@ -396,8 +396,8 @@ class TestReloadConfig:
         assert not daemon._reload_event.is_set()
 
         with (
-            patch("github_monitor.daemon.load_config", side_effect=FileNotFoundError("missing")),
-            patch("github_monitor.daemon.logger"),
+            patch("forgewatch.daemon.load_config", side_effect=FileNotFoundError("missing")),
+            patch("forgewatch.daemon.logger"),
         ):
             await daemon._reload_config()
 
@@ -475,7 +475,7 @@ class TestStart:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.fetch_all = AsyncMock(return_value=[])  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
+        with patch("forgewatch.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
             mock_setup.return_value = (mock_bus, mock_interface)
 
             # Stop the daemon after one iteration
@@ -499,7 +499,7 @@ class TestStart:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.fetch_all = AsyncMock(return_value=[])  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
+        with patch("forgewatch.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
             mock_setup.return_value = (mock_bus, mock_interface)
 
             async def poll_and_stop() -> None:
@@ -521,7 +521,7 @@ class TestStart:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
 
         with (
-            patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup,
+            patch("forgewatch.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup,
             patch.object(asyncio.get_event_loop(), "add_signal_handler") as mock_add_handler,
         ):
             mock_setup.return_value = (mock_bus, mock_interface)
@@ -553,7 +553,7 @@ class TestStart:
             running_during_poll = daemon._running
             daemon._handle_shutdown()
 
-        with patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
+        with patch("forgewatch.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
             mock_setup.return_value = (mock_bus, mock_interface)
             daemon._poll_once = capture_and_stop  # type: ignore[method-assign]
             await daemon.start()
@@ -705,7 +705,7 @@ class TestSecondPollNotifications:
         pr1 = _make_pr(1)
         daemon.client.fetch_all = AsyncMock(return_value=[pr1])  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_not_awaited()
 
@@ -713,7 +713,7 @@ class TestSecondPollNotifications:
         pr2 = _make_pr(2)
         daemon.client.fetch_all = AsyncMock(return_value=[pr1, pr2])  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_awaited_once()
             notified_prs = mock_notify.call_args[0][0]
@@ -736,7 +736,7 @@ class TestNotificationsEnabled:
         daemon.interface = MagicMock()
         daemon._first_poll = False
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_not_awaited()
 
@@ -747,7 +747,7 @@ class TestNotificationsEnabled:
         daemon.interface = MagicMock()
         daemon._first_poll = False
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_awaited_once()
 
@@ -767,7 +767,7 @@ class TestNotifyOnFirstPoll:
         daemon.interface = MagicMock()
         assert daemon._first_poll is True
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_awaited_once()
 
@@ -778,7 +778,7 @@ class TestNotifyOnFirstPoll:
         daemon.interface = MagicMock()
         assert daemon._first_poll is True
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_not_awaited()
 
@@ -798,7 +798,7 @@ class TestNotificationConfigPassthrough:
         daemon.interface = MagicMock()
         daemon._first_poll = False
 
-        with patch("github_monitor.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
             await daemon._poll_once()
             mock_notify.assert_awaited_once_with(
                 prs,
@@ -821,7 +821,7 @@ class TestDbusEnabled:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.fetch_all = AsyncMock(return_value=[])  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
+        with patch("forgewatch.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
 
             async def poll_and_stop() -> None:
                 daemon._handle_shutdown()
@@ -840,7 +840,7 @@ class TestDbusEnabled:
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
+        with patch("forgewatch.daemon.setup_dbus", new_callable=AsyncMock) as mock_setup:
             mock_setup.return_value = (mock_bus, mock_interface)
 
             async def poll_and_stop() -> None:
@@ -868,7 +868,7 @@ class TestReloadLogLevel:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config):
+        with patch("forgewatch.daemon.load_config", return_value=new_config):
             await daemon._reload_config()
 
         assert logging.getLogger().level == logging.DEBUG
@@ -879,7 +879,7 @@ class TestReloadLogLevel:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config):
+        with patch("forgewatch.daemon.load_config", return_value=new_config):
             await daemon._reload_config()
 
         assert logging.getLogger().level == logging.WARNING
@@ -911,7 +911,7 @@ class TestClientConfigPassthrough:
         daemon.client.close = AsyncMock()  # type: ignore[method-assign]
         daemon.client.start = AsyncMock()  # type: ignore[method-assign]
 
-        with patch("github_monitor.daemon.load_config", return_value=new_config):
+        with patch("forgewatch.daemon.load_config", return_value=new_config):
             await daemon._reload_config()
 
         assert daemon.client._base_url == "https://gh.new.example.com"

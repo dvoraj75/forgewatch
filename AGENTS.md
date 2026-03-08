@@ -1,10 +1,10 @@
 # AGENTS.md — AI Coding Agent Guide
 
-This file describes how AI coding agents should work with the `github-monitor` codebase.
+This file describes how AI coding agents should work with the **forgewatch** codebase.
 
 ## Project Overview
 
-**github-monitor** is a Python 3.13+ async daemon that monitors GitHub pull requests assigned to (or requesting review from) a specific user. It exposes live state over D-Bus and sends desktop notifications via `notify-send` when new PRs arrive. An optional system tray indicator (separate process) connects to the daemon over D-Bus to display a live PR count and a clickable popup window.
+**forgewatch** is a Python 3.13+ async daemon that monitors GitHub pull requests assigned to (or requesting review from) a specific user. It exposes live state over D-Bus and sends desktop notifications via `notify-send` when new PRs arrive. An optional system tray indicator (separate process) connects to the daemon over D-Bus to display a live PR count and a clickable popup window.
 
 Key traits:
 - Pure async (`asyncio`) -- no threads, no blocking I/O in the main loop
@@ -37,7 +37,7 @@ daemon.py            Orchestrator -- wires poller, store, D-Bus, notifier
     +---> poller.py          GitHub API client (aiohttp) + PullRequest dataclass
     +---> store.py           In-memory PR state + diff computation (StateDiff)
     +---> notifier.py        Desktop notifications via notify-send subprocess
-    +---> dbus_service.py    D-Bus session bus interface (org.github_monitor.Daemon)
+    +---> dbus_service.py    D-Bus session bus interface (org.forgewatch.Daemon)
     +---> config.py          TOML config loading/validation
     +---> url_opener.py      Shared URL opener (XDG portal + xdg-open fallback)
 
@@ -70,7 +70,7 @@ indicator/               Separate process -- system tray icon + popup window
 | `poller.py` | `PullRequest` frozen dataclass (core data model) + `GitHubClient` async HTTP client. Uses GitHub Search Issues API with pagination, rate limiting, exponential backoff retries. |
 | `store.py` | `PRStore` -- in-memory dict keyed by URL. Computes `StateDiff` (new/closed/updated PRs) on each update. |
 | `notifier.py` | Sends desktop notifications. 1-3 PRs get individual notifications; >3 get a single summary. Downloads PR author avatars for notification icons. Supports clickable notifications that open the PR in a browser. |
-| `dbus_service.py` | Exports `org.github_monitor.Daemon` on the session bus. Methods: `GetPullRequests()`, `GetStatus()`, `Refresh()`. Signal: `PullRequestsChanged`. |
+| `dbus_service.py` | Exports `org.forgewatch.Daemon` on the session bus. Methods: `GetPullRequests()`, `GetStatus()`, `Refresh()`. Signal: `PullRequestsChanged`. |
 | `url_opener.py` | Shared async URL opener used by both the notifier and indicator. Tries XDG Desktop Portal (D-Bus) first, falls back to `xdg-open`. |
 | `indicator/__main__.py` | Indicator entry point. Checks for GTK3/AppIndicator3/gbulb dependencies, installs gbulb event loop, launches `IndicatorApp`. |
 | `indicator/app.py` | `IndicatorApp` orchestrator. Wires D-Bus client, tray icon, and popup window. Bridges sync GTK callbacks and async D-Bus calls. |
@@ -100,27 +100,27 @@ indicator/               Separate process -- system tray icon + popup window
 uv sync
 
 # Run the daemon (development)
-uv run github-monitor -c config.toml
-uv run github-monitor -c config.toml -v   # debug logging
+uv run forgewatch -c config.toml
+uv run forgewatch -c config.toml -v   # debug logging
 
 # Run as module
-uv run python -m github_monitor -c config.toml
+uv run python -m forgewatch -c config.toml
 
 # CLI management commands
-uv run github-monitor setup                     # full setup wizard
-uv run github-monitor setup --config-only       # only create config.toml
-uv run github-monitor setup --service-only      # only install + start systemd services
-uv run github-monitor service status             # show service status
-uv run github-monitor service start              # start services
-uv run github-monitor service stop               # stop services
-uv run github-monitor service restart            # restart services
-uv run github-monitor service install            # install systemd unit files
-uv run github-monitor service enable             # enable autostart
-uv run github-monitor service disable            # disable autostart
-uv run github-monitor uninstall                  # remove services + optionally config
+uv run forgewatch setup                     # full setup wizard
+uv run forgewatch setup --config-only       # only create config.toml
+uv run forgewatch setup --service-only      # only install + start systemd services
+uv run forgewatch service status             # show service status
+uv run forgewatch service start              # start services
+uv run forgewatch service stop               # stop services
+uv run forgewatch service restart            # restart services
+uv run forgewatch service install            # install systemd unit files
+uv run forgewatch service enable             # enable autostart
+uv run forgewatch service disable            # disable autostart
+uv run forgewatch uninstall                  # remove services + optionally config
 
 # Install as systemd user service
-systemctl --user enable --now github-monitor
+systemctl --user enable --now forgewatch
 ```
 
 ## Testing
@@ -141,7 +141,7 @@ uv run pytest -v
 
 Test configuration (in `pyproject.toml`):
 - `asyncio_mode = "auto"` — async test functions are detected automatically
-- `addopts = "-ra -v --cov=github_monitor --cov-report=term -n auto"` — parallel execution via `pytest-xdist`, coverage via `pytest-cov`
+- `addopts = "-ra -v --cov=forgewatch --cov-report=term -n auto"` — parallel execution via `pytest-xdist`, coverage via `pytest-cov`
 - Mock HTTP with `aioresponses`
 - Mock subprocesses and D-Bus with `unittest.mock`
 
@@ -163,7 +163,7 @@ uv run ruff check --fix .    # auto-fix
 uv run ruff format .
 
 # Type check (mypy — strict mode)
-uv run mypy github_monitor
+uv run mypy forgewatch
 ```
 
 ### Ruff Configuration
@@ -196,15 +196,12 @@ uv run mypy github_monitor
 | `config.toml` | **NEVER commit this file** -- contains a real GitHub token. Use `config.example.toml` as reference. |
 | `config.example.toml` | Template config with placeholder values. Safe to commit. |
 | `pyproject.toml` | Build config, dependencies, tool settings (ruff, mypy, pytest). |
-| `systemd/github-monitor.service` | Systemd user unit file for the daemon. |
-| `systemd/github-monitor-indicator.service` | Systemd user unit file for the indicator. Depends on the daemon service. |
-| `github_monitor/indicator/` | System tray indicator package. Separate process, connects to daemon over D-Bus. Requires GTK3/AppIndicator3/gbulb. |
-| `github_monitor/cli/` | CLI management subcommands package. Setup wizard, service management, uninstall. Stdlib only (no extra deps). |
-| `github_monitor/cli/systemd/` | Bundled `.service` files accessed via `importlib.resources`. |
-| `github_monitor/url_opener.py` | Shared URL opener (XDG portal + xdg-open fallback). Used by both notifier and indicator. |
-| `install.sh` | **DEPRECATED.** Automated installer -- use `github-monitor setup` instead. |
-| `update.sh` | **DEPRECATED.** Update script -- use `pip install --upgrade github-monitor` instead. |
-| `uninstall.sh` | **DEPRECATED.** Uninstall script -- use `github-monitor uninstall` instead. |
+| `systemd/forgewatch.service` | Systemd user unit file for the daemon. |
+| `systemd/forgewatch-indicator.service` | Systemd user unit file for the indicator. Depends on the daemon service. |
+| `forgewatch/indicator/` | System tray indicator package. Separate process, connects to daemon over D-Bus. Requires GTK3/AppIndicator3/gbulb. |
+| `forgewatch/cli/` | CLI management subcommands package. Setup wizard, service management, uninstall. Stdlib only (no extra deps). |
+| `forgewatch/cli/systemd/` | Bundled `.service` files accessed via `importlib.resources`. |
+| `forgewatch/url_opener.py` | Shared URL opener (XDG portal + xdg-open fallback). Used by both notifier and indicator. |
 | `docs/` | Architecture, configuration, development, and module documentation. |
 
 ## Common Modification Patterns
@@ -225,7 +222,7 @@ uv run mypy github_monitor
 
 ### Adding a D-Bus method
 
-1. Add the method to `GithubMonitorInterface` in `dbus_service.py` with `@method()` decorator
+1. Add the method to `ForgewatchInterface` in `dbus_service.py` with `@method()` decorator
 2. Use D-Bus type signature strings in the return annotation (e.g., `-> "s"`)
 3. Add tests using the `_unwrap_method()` helper pattern in `test_dbus_service.py`
 
@@ -238,7 +235,7 @@ uv run mypy github_monitor
 
 ### Adding/modifying the indicator
 
-The indicator is a separate process (`github_monitor.indicator`) with its own
+The indicator is a separate process (`forgewatch.indicator`) with its own
 entry point, D-Bus client, and GTK widgets. Key patterns:
 
 1. **Pure logic** is in `_tray_state.py` and `_window_helpers.py` -- these have
@@ -257,7 +254,7 @@ in `dbus_service.py`), also update:
 
 ### Adding/modifying CLI subcommands
 
-The CLI package (`github_monitor.cli`) uses stdlib only (no extra deps). Key patterns:
+The CLI package (`forgewatch.cli`) uses stdlib only (no extra deps). Key patterns:
 
 1. **Shared helpers** are in `_output.py`, `_prompts.py`, `_checks.py`, and
    `_systemd.py`. These are pure-Python modules with no async code.
@@ -271,7 +268,7 @@ The CLI package (`github_monitor.cli`) uses stdlib only (no extra deps). Key pat
    daemon flags (`-c`, `-v`) and management subcommands. When `args.command` is
    not `None`, it dispatches to `cli.dispatch(args)`.
 5. **Bundled service files** live in `cli/systemd/` and are read via
-   `importlib.resources.files("github_monitor.cli.systemd")`.
+   `importlib.resources.files("forgewatch.cli.systemd")`.
 
 When adding a new CLI subcommand:
 1. Create `cli/<command>.py` with a `run_<command>()` entry point

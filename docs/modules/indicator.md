@@ -1,6 +1,6 @@
 # `indicator/` -- API reference
 
-Package: `github_monitor.indicator`
+Package: `forgewatch.indicator`
 
 Optional system tray indicator that displays a live PR count and a clickable
 popup window. Runs as a separate process and connects to the daemon over D-Bus.
@@ -123,9 +123,9 @@ Daemon status metadata as received over D-Bus.
 
 | Constant | Value | Description |
 |---|---|---|
-| `BUS_NAME` | `org.github_monitor.Daemon` | Daemon's D-Bus bus name |
-| `OBJECT_PATH` | `/org/github_monitor/Daemon` | Daemon's D-Bus object path |
-| `INTERFACE_NAME` | `org.github_monitor.Daemon` | Daemon's D-Bus interface name |
+| `BUS_NAME` | `org.forgewatch.Daemon` | Daemon's D-Bus bus name |
+| `OBJECT_PATH` | `/org/forgewatch/Daemon` | Daemon's D-Bus object path |
+| `INTERFACE_NAME` | `org.forgewatch.Daemon` | Daemon's D-Bus interface name |
 | `_RECONNECT_INTERVAL_S` | `10` | Seconds between reconnection attempts |
 
 These are intentionally duplicated from `dbus_service.py` because the
@@ -169,7 +169,7 @@ class DaemonClient:
     ) -> None: ...
 ```
 
-Async D-Bus client for the github-monitor daemon. Connects to the session
+Async D-Bus client for the ForgeWatch daemon. Connects to the session
 bus, obtains a proxy for the daemon's interface, subscribes to the
 `PullRequestsChanged` signal, and handles automatic reconnection.
 
@@ -321,7 +321,7 @@ These synchronous callbacks are registered with the client, tray, and window:
 
 | Constant | Value | Description |
 |---|---|---|
-| `_INDICATOR_ID` | `github-monitor-indicator` | AppIndicator3 indicator ID |
+| `_INDICATOR_ID` | `forgewatch-indicator` | AppIndicator3 indicator ID |
 | `_RESOURCES_DIR` | `indicator/resources/` | Base directory for icon files; subdirectory is selected by `icon_theme` (`light/` or `dark/`) |
 
 ### `TrayIcon`
@@ -491,10 +491,10 @@ No GTK imports -- fully unit-testable without system packages.
 
 ```python
 class Icon(StrEnum):
-    NEUTRAL = "github-monitor"
-    ACTIVE = "github-monitor-active"
-    ALERT = "github-monitor-alert"
-    DISCONNECTED = "github-monitor-disconnected"
+    NEUTRAL = "forgewatch"
+    ACTIVE = "forgewatch-active"
+    ALERT = "forgewatch-alert"
+    DISCONNECTED = "forgewatch-disconnected"
 ```
 
 Icon name constants resolved from the icon theme or the custom icon
@@ -555,11 +555,11 @@ when the user hovers over the tray icon (via `AppIndicator3.Indicator.set_title(
 
 | Condition | Example output |
 |---|---|
-| Not connected | `"GitHub Monitor — Disconnected"` |
-| Zero PRs | `"GitHub Monitor — No open PRs"` |
-| 1 PR, no review | `"GitHub Monitor — 1 open PR"` |
-| Multiple PRs, no review | `"GitHub Monitor — 3 open PRs"` |
-| PRs with review requested | `"GitHub Monitor — 3 open PRs (review requested)"` |
+| Not connected | `"ForgeWatch — Disconnected"` |
+| Zero PRs | `"ForgeWatch — No open PRs"` |
+| 1 PR, no review | `"ForgeWatch — 1 open PR"` |
+| Multiple PRs, no review | `"ForgeWatch — 3 open PRs"` |
+| PRs with review requested | `"ForgeWatch — 3 open PRs (review requested)"` |
 
 ---
 
@@ -651,13 +651,13 @@ their XML entity equivalents.
 
 ```python
 # The indicator is typically launched via its entry point:
-#   python -m github_monitor.indicator
-#   github-monitor-indicator
+#   python -m forgewatch.indicator
+#   forgewatch-indicator
 
 # Or programmatically:
 import asyncio
 import gbulb
-from github_monitor.indicator.app import IndicatorApp
+from forgewatch.indicator.app import IndicatorApp
 
 gbulb.install()
 app = IndicatorApp(icon_theme="dark")  # or "light" (default)

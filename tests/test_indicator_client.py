@@ -1,4 +1,4 @@
-"""Tests for github_monitor.indicator.client."""
+"""Tests for forgewatch.indicator.client."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ import pytest
 from dbus_next.constants import MessageType
 from dbus_next.errors import DBusError
 
-from github_monitor.indicator.client import (
+from forgewatch.indicator.client import (
     BUS_NAME,
     INTERFACE_NAME,
     OBJECT_PATH,
@@ -20,7 +20,7 @@ from github_monitor.indicator.client import (
     _parse_prs,
     _parse_status,
 )
-from github_monitor.indicator.models import DaemonStatus, PRInfo
+from forgewatch.indicator.models import DaemonStatus, PRInfo
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -100,13 +100,13 @@ def _make_mock_bus() -> tuple[MagicMock, MagicMock, MagicMock]:
 
 class TestConstants:
     def test_bus_name(self) -> None:
-        assert BUS_NAME == "org.github_monitor.Daemon"
+        assert BUS_NAME == "org.forgewatch.Daemon"
 
     def test_object_path(self) -> None:
-        assert OBJECT_PATH == "/org/github_monitor/Daemon"
+        assert OBJECT_PATH == "/org/forgewatch/Daemon"
 
     def test_interface_name(self) -> None:
-        assert INTERFACE_NAME == "org.github_monitor.Daemon"
+        assert INTERFACE_NAME == "org.forgewatch.Daemon"
 
 
 # ---------------------------------------------------------------------------
@@ -214,7 +214,7 @@ class TestParseStatus:
 
 
 class TestConnect:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_connect_success(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -232,7 +232,7 @@ class TestConnect:
         # NameOwnerChanged watcher was registered
         bus.add_message_handler.assert_called_once()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_connect_failure_schedules_reconnect(self, mock_bus_class: MagicMock) -> None:
         mock_bus_class.return_value.connect = AsyncMock(side_effect=OSError("no bus"))
 
@@ -250,7 +250,7 @@ class TestConnect:
         # Clean up the scheduled reconnect
         client._cancel_reconnect()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_connect_dbus_error_schedules_reconnect(self, mock_bus_class: MagicMock) -> None:
         mock_bus_class.return_value.connect = AsyncMock(
             side_effect=DBusError("org.freedesktop.DBus.Error.ServiceUnknown", "not found"),
@@ -273,7 +273,7 @@ class TestConnect:
 
 
 class TestDisconnect:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_disconnect_cleans_up(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, _interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -293,7 +293,7 @@ class TestDisconnect:
         await client.disconnect()
         assert client.connected is False
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_disconnect_cancels_reconnect(self, mock_bus_class: MagicMock) -> None:
         mock_bus_class.return_value.connect = AsyncMock(side_effect=OSError("no bus"))
 
@@ -311,7 +311,7 @@ class TestDisconnect:
 
 
 class TestGetPullRequests:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_returns_parsed_prs(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -329,7 +329,7 @@ class TestGetPullRequests:
         assert result[0].number == 1
         assert result[1].number == 2
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_dbus_error_returns_empty_and_disconnects(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -354,7 +354,7 @@ class TestGetPullRequests:
         with pytest.raises(ConnectionError, match="Not connected"):
             await client.get_pull_requests()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_eoferror_returns_empty_and_disconnects(self, mock_bus_class: MagicMock) -> None:
         """EOFError during get_pull_requests is caught and triggers disconnect."""
         bus, _proxy, interface = _make_mock_bus()
@@ -379,7 +379,7 @@ class TestGetPullRequests:
 
 
 class TestGetStatus:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_returns_parsed_status(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -396,7 +396,7 @@ class TestGetStatus:
         assert result.pr_count == 3
         assert result.last_updated == _NOW
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_dbus_error_returns_none_and_disconnects(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -421,7 +421,7 @@ class TestGetStatus:
         with pytest.raises(ConnectionError, match="Not connected"):
             await client.get_status()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_eoferror_returns_none_and_disconnects(self, mock_bus_class: MagicMock) -> None:
         """EOFError during get_status is caught and triggers disconnect."""
         bus, _proxy, interface = _make_mock_bus()
@@ -446,7 +446,7 @@ class TestGetStatus:
 
 
 class TestRefresh:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_returns_parsed_prs(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -462,7 +462,7 @@ class TestRefresh:
         assert len(result) == 1
         assert result[0].number == 10
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_dbus_error_returns_empty_and_disconnects(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -485,7 +485,7 @@ class TestRefresh:
         with pytest.raises(ConnectionError, match="Not connected"):
             await client.refresh()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_eoferror_returns_empty_and_disconnects(self, mock_bus_class: MagicMock) -> None:
         """EOFError during refresh is caught and triggers disconnect."""
         bus, _proxy, interface = _make_mock_bus()
@@ -510,7 +510,7 @@ class TestRefresh:
 
 
 class TestSignalHandling:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_signal_calls_on_prs_changed(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -531,7 +531,7 @@ class TestSignalHandling:
         assert len(prs) == 1
         assert prs[0].number == 99
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_signal_with_invalid_json_does_not_crash(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -547,7 +547,7 @@ class TestSignalHandling:
 
         on_prs.assert_not_called()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_signal_with_missing_keys_does_not_crash(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -570,7 +570,7 @@ class TestSignalHandling:
 
 
 class TestNameOwnerChanged:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_daemon_disappearing_triggers_disconnect(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, _interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -597,7 +597,7 @@ class TestNameOwnerChanged:
         on_conn.assert_called_once_with(False)  # noqa: FBT003
         client._cancel_reconnect()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_other_name_change_ignored(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, _interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -621,7 +621,7 @@ class TestNameOwnerChanged:
         assert client.connected is True
         on_conn.assert_not_called()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_name_acquiring_ignored(self, mock_bus_class: MagicMock) -> None:
         bus, _proxy, _interface = _make_mock_bus()
         mock_bus_class.return_value.connect = AsyncMock(return_value=bus)
@@ -645,7 +645,7 @@ class TestNameOwnerChanged:
         assert client.connected is True
         on_conn.assert_not_called()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_message_with_body_none_ignored(self, mock_bus_class: MagicMock) -> None:
         """NameOwnerChanged signal with body=None should be safely ignored."""
         bus, _proxy, _interface = _make_mock_bus()
@@ -670,7 +670,7 @@ class TestNameOwnerChanged:
         assert client.connected is True
         on_conn.assert_not_called()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_message_with_short_body_ignored(self, mock_bus_class: MagicMock) -> None:
         """NameOwnerChanged signal with body shorter than 3 elements should be ignored."""
         bus, _proxy, _interface = _make_mock_bus()
@@ -702,7 +702,7 @@ class TestNameOwnerChanged:
 
 
 class TestReconnection:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_reconnect_scheduled_on_failure(self, mock_bus_class: MagicMock) -> None:
         mock_bus_class.return_value.connect = AsyncMock(side_effect=OSError("no bus"))
 
@@ -713,7 +713,7 @@ class TestReconnection:
         assert client._reconnect_handle.cancelled() is False
         client._cancel_reconnect()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_reconnect_not_doubled(self, mock_bus_class: MagicMock) -> None:
         """Multiple failures should not schedule multiple reconnects."""
         mock_bus_class.return_value.connect = AsyncMock(side_effect=OSError("no bus"))
@@ -729,7 +729,7 @@ class TestReconnection:
         assert client._reconnect_handle is first_handle
         client._cancel_reconnect()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_successful_connect_cancels_reconnect(self, mock_bus_class: MagicMock) -> None:
         """After a failed connect + scheduled reconnect, a successful connect should cancel it."""
         call_count = 0
@@ -754,7 +754,7 @@ class TestReconnection:
         assert client._reconnect_handle is None
         assert client.connected is True
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_reconnect_retries_after_fired_timer_fails(self, mock_bus_class: MagicMock) -> None:
         """After a scheduled reconnect fires and connect() fails again, a new timer must be scheduled.
 
@@ -794,7 +794,7 @@ class TestReconnection:
 
 
 class TestSetDisconnected:
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_only_notifies_once_on_repeated_disconnect(self, mock_bus_class: MagicMock) -> None:
         """If already disconnected, _set_disconnected should not call on_connection_changed again."""
         bus, _proxy, _interface = _make_mock_bus()
@@ -812,7 +812,7 @@ class TestSetDisconnected:
         on_conn.assert_called_once_with(False)  # noqa: FBT003
         client._cancel_reconnect()
 
-    @patch("github_monitor.indicator.client.MessageBus")
+    @patch("forgewatch.indicator.client.MessageBus")
     async def test_bus_disconnect_error_is_swallowed(self, mock_bus_class: MagicMock) -> None:
         """If bus.disconnect() raises, it should be caught and not propagate."""
         bus, _proxy, _interface = _make_mock_bus()
