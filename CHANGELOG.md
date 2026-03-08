@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0.dev1] - Unreleased
+
+### Changed
+
+- **Rebrand**: renamed project from `github-monitor` to `forgewatch` — Python package (`github_monitor` -> `forgewatch`), CLI entry points, D-Bus bus name (`org.forgewatch.Daemon`), systemd service files, config directory (`~/.config/forgewatch/`), icon resources, and all metadata
+- Removed deprecated shell scripts (`install.sh`, `update.sh`, `uninstall.sh`) — replaced by CLI subcommands in v1.3.0
+
+### Fixed
+
+- Stale pre-rebrand references in `docs/systemd.md`, `docs/modules/daemon.md`, and `tests/test_cli_systemd.py` still showing old "GitHub PR Monitor" description
+
 ## [1.3.1] - 2026-03-08
 
 ### Added
@@ -24,16 +35,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - CLI management subcommands replacing the shell scripts with a Python-native solution:
-  - `github-monitor setup` -- interactive config wizard + systemd service installation (supports `--config-only` and `--service-only` flags)
-  - `github-monitor service` -- systemd service management (install, start, stop, restart, status, enable, disable)
-  - `github-monitor uninstall` -- stop services, remove unit files, optionally remove config
+  - `forgewatch setup` -- interactive config wizard + systemd service installation (supports `--config-only` and `--service-only` flags)
+  - `forgewatch service` -- systemd service management (install, start, stop, restart, status, enable, disable)
+  - `forgewatch uninstall` -- stop services, remove unit files, optionally remove config
 - Bundled systemd service files as package data (accessed via `importlib.resources`)
 
 ### Deprecated
 
-- `install.sh` -- use `github-monitor setup` instead
-- `update.sh` -- use `pip install --upgrade github-monitor` instead
-- `uninstall.sh` -- use `github-monitor uninstall` instead
+- `install.sh` -- use `forgewatch setup` instead
+- `update.sh` -- use `pip install --upgrade forgewatch` instead
+- `uninstall.sh` -- use `forgewatch uninstall` instead
 
 ### Fixed
 
@@ -66,7 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Show/Hide toggle, Refresh, and Quit menu items
 - Light and dark icon theme support via `icon_theme` config option
 - Shared URL opener module (XDG Desktop Portal with xdg-open fallback), used by both notifier and indicator
-- Systemd user service for the indicator (`github-monitor-indicator.service`)
+- Systemd user service for the indicator (`forgewatch-indicator.service`)
 - Comprehensive test suite for all indicator modules
 
 ### Fixed
@@ -80,7 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Runtime-configurable options in `config.toml`: log level, notifications toggle, D-Bus toggle, notification urgency/threshold, max retries, `notify_on_first_poll`, and GitHub Enterprise base URL
 - `update.sh` script for in-place upgrades with git-aware safety checks
-- `systemctl --user reload github-monitor` support via `ExecReload` in systemd service
+- `systemctl --user reload forgewatch` support via `ExecReload` in systemd service
 - Pre-commit hooks for ruff and mypy (`.pre-commit-config.yaml`)
 
 ### Changed
@@ -106,7 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub PR polling via Search Issues API with pagination and rate limiting
 - In-memory state store with diff computation (new/closed/updated PRs)
 - Desktop notifications via `notify-send` with author avatars and clickable links
-- D-Bus session bus interface (`org.github_monitor.Daemon`) with methods: `GetPullRequests`, `GetStatus`, `Refresh` and signal: `PullRequestsChanged`
+- D-Bus session bus interface (`org.forgewatch.Daemon`) with methods: `GetPullRequests`, `GetStatus`, `Refresh` and signal: `PullRequestsChanged`
 - TOML configuration with environment variable override support (`GITHUB_TOKEN`)
 - Exponential backoff retries for API failures
 - Graceful shutdown (SIGTERM/SIGINT) and config reload (SIGHUP)

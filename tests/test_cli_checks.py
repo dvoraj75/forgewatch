@@ -1,11 +1,11 @@
-"""Tests for github_monitor.cli._checks."""
+"""Tests for forgewatch.cli._checks."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from github_monitor.cli._checks import check_dbus_session, check_gtk_indicator, check_notify_send, check_systemctl
+from forgewatch.cli._checks import check_dbus_session, check_gtk_indicator, check_notify_send, check_systemctl
 
 if TYPE_CHECKING:
     import pytest
@@ -21,15 +21,15 @@ class TestCheckNotifySend:
 
     def test_found_returns_true(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value="/usr/bin/notify-send"),
-            patch("github_monitor.cli._checks.ok"),
+            patch("forgewatch.cli._checks.shutil.which", return_value="/usr/bin/notify-send"),
+            patch("forgewatch.cli._checks.ok"),
         ):
             assert check_notify_send() is True
 
     def test_found_prints_ok(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value="/usr/bin/notify-send"),
-            patch("github_monitor.cli._checks.ok") as mock_ok,
+            patch("forgewatch.cli._checks.shutil.which", return_value="/usr/bin/notify-send"),
+            patch("forgewatch.cli._checks.ok") as mock_ok,
         ):
             check_notify_send()
         mock_ok.assert_called_once()
@@ -37,17 +37,17 @@ class TestCheckNotifySend:
 
     def test_missing_returns_false(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value=None),
-            patch("github_monitor.cli._checks.warn"),
-            patch("github_monitor.cli._checks.info"),
+            patch("forgewatch.cli._checks.shutil.which", return_value=None),
+            patch("forgewatch.cli._checks.warn"),
+            patch("forgewatch.cli._checks.info"),
         ):
             assert check_notify_send() is False
 
     def test_missing_prints_warning_and_install_hint(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value=None),
-            patch("github_monitor.cli._checks.warn") as mock_warn,
-            patch("github_monitor.cli._checks.info") as mock_info,
+            patch("forgewatch.cli._checks.shutil.which", return_value=None),
+            patch("forgewatch.cli._checks.warn") as mock_warn,
+            patch("forgewatch.cli._checks.info") as mock_info,
         ):
             check_notify_send()
         mock_warn.assert_called_once()
@@ -65,28 +65,28 @@ class TestCheckDbusSession:
 
     def test_env_set_returns_true(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/run/user/1000/bus")
-        with patch("github_monitor.cli._checks.ok"):
+        with patch("forgewatch.cli._checks.ok"):
             assert check_dbus_session() is True
 
     def test_env_set_prints_ok(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DBUS_SESSION_BUS_ADDRESS", "unix:path=/run/user/1000/bus")
-        with patch("github_monitor.cli._checks.ok") as mock_ok:
+        with patch("forgewatch.cli._checks.ok") as mock_ok:
             check_dbus_session()
         mock_ok.assert_called_once()
 
     def test_env_missing_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("DBUS_SESSION_BUS_ADDRESS", raising=False)
         with (
-            patch("github_monitor.cli._checks.warn"),
-            patch("github_monitor.cli._checks.info"),
+            patch("forgewatch.cli._checks.warn"),
+            patch("forgewatch.cli._checks.info"),
         ):
             assert check_dbus_session() is False
 
     def test_env_missing_prints_warning(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.delenv("DBUS_SESSION_BUS_ADDRESS", raising=False)
         with (
-            patch("github_monitor.cli._checks.warn") as mock_warn,
-            patch("github_monitor.cli._checks.info"),
+            patch("forgewatch.cli._checks.warn") as mock_warn,
+            patch("forgewatch.cli._checks.info"),
         ):
             check_dbus_session()
         mock_warn.assert_called_once()
@@ -95,8 +95,8 @@ class TestCheckDbusSession:
     def test_env_empty_string_returns_false(self, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setenv("DBUS_SESSION_BUS_ADDRESS", "")
         with (
-            patch("github_monitor.cli._checks.warn"),
-            patch("github_monitor.cli._checks.info"),
+            patch("forgewatch.cli._checks.warn"),
+            patch("forgewatch.cli._checks.info"),
         ):
             assert check_dbus_session() is False
 
@@ -113,7 +113,7 @@ class TestCheckGtkIndicator:
         mock_gi = MagicMock()
         with (
             patch.dict("sys.modules", {"gi": mock_gi}),
-            patch("github_monitor.cli._checks.ok"),
+            patch("forgewatch.cli._checks.ok"),
         ):
             assert check_gtk_indicator() is True
 
@@ -121,7 +121,7 @@ class TestCheckGtkIndicator:
         mock_gi = MagicMock()
         with (
             patch.dict("sys.modules", {"gi": mock_gi}),
-            patch("github_monitor.cli._checks.ok") as mock_ok,
+            patch("forgewatch.cli._checks.ok") as mock_ok,
         ):
             check_gtk_indicator()
         mock_ok.assert_called_once()
@@ -130,16 +130,16 @@ class TestCheckGtkIndicator:
     def test_import_error_returns_false(self) -> None:
         with (
             patch.dict("sys.modules", {"gi": None}),
-            patch("github_monitor.cli._checks.warn"),
-            patch("github_monitor.cli._checks.info"),
+            patch("forgewatch.cli._checks.warn"),
+            patch("forgewatch.cli._checks.info"),
         ):
             assert check_gtk_indicator() is False
 
     def test_import_error_prints_warning_and_install_hint(self) -> None:
         with (
             patch.dict("sys.modules", {"gi": None}),
-            patch("github_monitor.cli._checks.warn") as mock_warn,
-            patch("github_monitor.cli._checks.info") as mock_info,
+            patch("forgewatch.cli._checks.warn") as mock_warn,
+            patch("forgewatch.cli._checks.info") as mock_info,
         ):
             check_gtk_indicator()
         mock_warn.assert_called_once()
@@ -150,8 +150,8 @@ class TestCheckGtkIndicator:
         mock_gi.require_version.side_effect = ValueError("Namespace not available")
         with (
             patch.dict("sys.modules", {"gi": mock_gi}),
-            patch("github_monitor.cli._checks.warn"),
-            patch("github_monitor.cli._checks.info"),
+            patch("forgewatch.cli._checks.warn"),
+            patch("forgewatch.cli._checks.info"),
         ):
             assert check_gtk_indicator() is False
 
@@ -166,15 +166,15 @@ class TestCheckSystemctl:
 
     def test_found_returns_true(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value="/usr/bin/systemctl"),
-            patch("github_monitor.cli._checks.ok"),
+            patch("forgewatch.cli._checks.shutil.which", return_value="/usr/bin/systemctl"),
+            patch("forgewatch.cli._checks.ok"),
         ):
             assert check_systemctl() is True
 
     def test_found_prints_ok(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value="/usr/bin/systemctl"),
-            patch("github_monitor.cli._checks.ok") as mock_ok,
+            patch("forgewatch.cli._checks.shutil.which", return_value="/usr/bin/systemctl"),
+            patch("forgewatch.cli._checks.ok") as mock_ok,
         ):
             check_systemctl()
         mock_ok.assert_called_once()
@@ -182,15 +182,15 @@ class TestCheckSystemctl:
 
     def test_missing_returns_false(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value=None),
-            patch("github_monitor.cli._checks.warn"),
+            patch("forgewatch.cli._checks.shutil.which", return_value=None),
+            patch("forgewatch.cli._checks.warn"),
         ):
             assert check_systemctl() is False
 
     def test_missing_prints_warning(self) -> None:
         with (
-            patch("github_monitor.cli._checks.shutil.which", return_value=None),
-            patch("github_monitor.cli._checks.warn") as mock_warn,
+            patch("forgewatch.cli._checks.shutil.which", return_value=None),
+            patch("forgewatch.cli._checks.warn") as mock_warn,
         ):
             check_systemctl()
         mock_warn.assert_called_once()

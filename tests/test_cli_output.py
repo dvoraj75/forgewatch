@@ -1,12 +1,12 @@
-"""Tests for github_monitor.cli._output."""
+"""Tests for forgewatch.cli._output."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from github_monitor.cli import _output
-from github_monitor.cli._output import _BLUE, _GREEN, _RED, _RESET, _YELLOW, err, info, ok, step, warn
+from forgewatch.cli import _output
+from forgewatch.cli._output import _BLUE, _GREEN, _RED, _RESET, _YELLOW, err, info, ok, step, warn
 
 if TYPE_CHECKING:
     import pytest

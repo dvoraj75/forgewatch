@@ -24,7 +24,7 @@ if TYPE_CHECKING:
     from dbus_next.aio.message_bus import MessageBus
 
     from .config import Config
-    from .dbus_service import GithubMonitorInterface
+    from .dbus_service import ForgewatchInterface
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ class Daemon:
             max_retries=config.max_retries,
         )
         self.bus: MessageBus | None = None
-        self.interface: GithubMonitorInterface | None = None
+        self.interface: ForgewatchInterface | None = None
         self._running = False
         self._first_poll = True
         self._shutdown_event = asyncio.Event()

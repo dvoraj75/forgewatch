@@ -1,11 +1,11 @@
 [Unit]
-Description=GitHub PR Monitor - Panel Indicator
-After=github-monitor.service
-Wants=github-monitor.service
+Description=ForgeWatch — Panel Indicator
+After=forgewatch.service
+Wants=forgewatch.service
 
 [Service]
 Type=simple
-ExecStart=@@GITHUB_MONITOR_INDICATOR_EXEC@@
+ExecStart=@@FORGEWATCH_INDICATOR_EXEC@@
 Restart=on-failure
 RestartSec=10
 

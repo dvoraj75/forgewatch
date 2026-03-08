@@ -14,7 +14,7 @@ poll_interval = 300
 repos = []
 
 # Log level: "debug", "info", "warning", or "error" (default: "info")
-# Tip: change to "debug" and run `systemctl --user reload github-monitor`
+# Tip: change to "debug" and run `systemctl --user reload forgewatch`
 # to enable debug logging without restarting the service.
 # log_level = "info"
 

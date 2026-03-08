@@ -1,23 +1,23 @@
 # `cli/` -- API reference
 
-Package: `github_monitor.cli`
+Package: `forgewatch.cli`
 
-CLI management subcommands for installing and managing github-monitor as a
+CLI management subcommands for installing and managing ForgeWatch as a
 systemd user service. This package uses **stdlib only** -- no extra dependencies
 beyond the Python standard library.
 
 ## Command overview
 
 ```
-github-monitor setup [--config-only | --service-only]
-github-monitor service {install,start,stop,restart,status,enable,disable}
-github-monitor uninstall
+forgewatch setup [--config-only | --service-only]
+forgewatch service {install,start,stop,restart,status,enable,disable}
+forgewatch uninstall
 ```
 
-When the first argument to `github-monitor` is a known subcommand (`setup`,
+When the first argument to `forgewatch` is a known subcommand (`setup`,
 `service`, `uninstall`), the unified parser in `__main__.py` dispatches to
 `cli.dispatch()`. Otherwise, the daemon starts as usual for full backward
-compatibility. Running `github-monitor --help` shows both daemon flags and
+compatibility. Running `forgewatch --help` shows both daemon flags and
 management subcommands.
 
 ## Module structure
@@ -33,8 +33,8 @@ cli/
 ├── _checks.py       # System dependency checks
 ├── _systemd.py      # Systemd operations (copy units, start/stop/reload)
 └── systemd/         # Bundled .service files (accessed via importlib.resources)
-    ├── github-monitor.service
-    └── github-monitor-indicator.service
+    ├── forgewatch.service
+    └── forgewatch-indicator.service
 ```
 
 ---
@@ -96,14 +96,14 @@ When `command` is `None` (no subcommand given), prints help and exits with code 
 
 ## `cli/setup.py` -- Setup command
 
-Module: `github_monitor.cli.setup`
+Module: `forgewatch.cli.setup`
 
 Interactive setup wizard that replaces the functionality of the deprecated
 `install.sh` script.
 
 ### `run_setup(*, config_only: bool = False, service_only: bool = False) -> None`
 
-Entry point for the `github-monitor setup` command.
+Entry point for the `forgewatch setup` command.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
@@ -137,7 +137,7 @@ _format_repos_toml(["a/b", "c/d"])        # '["a/b", "c/d"]'
 
 #### `_write_config(token: str, username: str, poll_interval: int, repos: list[str]) -> None`
 
-Write the config file to `CONFIG_PATH` (`~/.config/github-monitor/config.toml`)
+Write the config file to `CONFIG_PATH` (`~/.config/forgewatch/config.toml`)
 using `_CONFIG_TEMPLATE`. Creates the config directory if needed. Sets file
 permissions to `0o600` (owner read/write only).
 
@@ -172,7 +172,7 @@ Print the final summary with config file path and useful `systemctl` /
 
 ## `cli/service.py` -- Service management command
 
-Module: `github_monitor.cli.service`
+Module: `forgewatch.cli.service`
 
 Thin CLI layer over `_systemd.py` for managing the daemon and indicator
 systemd services. Replaces the manual `systemctl` commands users had to
@@ -211,20 +211,20 @@ found. Returns `True` if available, `False` otherwise.
 #### `_has_indicator() -> bool`
 
 Check if the indicator service file is installed in the user systemd directory.
-Returns `True` if `~/.config/systemd/user/github-monitor-indicator.service`
+Returns `True` if `~/.config/systemd/user/forgewatch-indicator.service`
 exists.
 
 ---
 
 ## `cli/uninstall.py` -- Uninstall command
 
-Module: `github_monitor.cli.uninstall`
+Module: `forgewatch.cli.uninstall`
 
 Uninstall flow that replaces the deprecated `uninstall.sh` script.
 
 ### `run_uninstall() -> None`
 
-Entry point for the `github-monitor uninstall` command.
+Entry point for the `forgewatch uninstall` command.
 
 **Flow (5 steps):**
 
@@ -252,7 +252,7 @@ Stop the daemon service if active, disable it if enabled.
 #### `_remove_config() -> None`
 
 Prompt the user to remove the config directory
-(`~/.config/github-monitor/`). Default is `False` (keep). If the directory
+(`~/.config/forgewatch/`). Default is `False` (keep). If the directory
 does not exist, prints an info message and returns.
 
 #### `_print_summary() -> None`
@@ -264,7 +264,7 @@ reminds the user of its location. Always prints the pip uninstall command.
 
 ## `cli/_output.py` -- Terminal output helpers
 
-Module: `github_monitor.cli._output`
+Module: `forgewatch.cli._output`
 
 Coloured, structured output for CLI commands. Colour is suppressed when output
 is not a TTY (piping, CI). Uses separate TTY detection for stdout and stderr
@@ -319,7 +319,7 @@ step(1, 5, "Checking dependencies")
 
 ## `cli/_prompts.py` -- Interactive prompt helpers
 
-Module: `github_monitor.cli._prompts`
+Module: `forgewatch.cli._prompts`
 
 Helpers for the config wizard. Each function validates input and loops on
 invalid values. All prompts handle `EOFError` gracefully (non-interactive
@@ -384,7 +384,7 @@ empty strings.
 
 ## `cli/_checks.py` -- System dependency checks
 
-Module: `github_monitor.cli._checks`
+Module: `forgewatch.cli._checks`
 
 Check for optional system dependencies. Each function returns a `bool`
 indicating whether the dependency is available, and prints an `[OK]` or
@@ -421,7 +421,7 @@ Check if `systemctl` is available on PATH via `shutil.which()`.
 
 ## `cli/_systemd.py` -- Systemd operations
 
-Module: `github_monitor.cli._systemd`
+Module: `forgewatch.cli._systemd`
 
 All systemd interactions in one module. Uses `subprocess.run()` with proper
 error handling. Every function is a thin wrapper that can be easily mocked in
@@ -432,14 +432,14 @@ tests.
 | Constant | Value | Description |
 |---|---|---|
 | `SERVICE_DIR` | `Path.home() / ".config" / "systemd" / "user"` | User systemd unit directory |
-| `DAEMON_SERVICE` | `"github-monitor.service"` | Daemon service file name |
-| `INDICATOR_SERVICE` | `"github-monitor-indicator.service"` | Indicator service file name |
-| `_LEGACY_AUTOSTART` | `Path.home() / ".config" / "autostart" / "github-monitor-indicator.desktop"` | Legacy XDG autostart file path |
+| `DAEMON_SERVICE` | `"forgewatch.service"` | Daemon service file name |
+| `INDICATOR_SERVICE` | `"forgewatch-indicator.service"` | Indicator service file name |
+| `_LEGACY_AUTOSTART` | `Path.home() / ".config" / "autostart" / "forgewatch-indicator.desktop"` | Legacy XDG autostart file path |
 
 ### `_read_service_file(name: str) -> str`
 
 Internal helper. Read a bundled service file from the `cli/systemd/` package
-data directory via `importlib.resources.files("github_monitor.cli.systemd")`.
+data directory via `importlib.resources.files("forgewatch.cli.systemd")`.
 
 ### `_run_systemctl(*args: str) -> subprocess.CompletedProcess[bytes]`
 
@@ -526,7 +526,7 @@ if `SERVICE_DIR / service` exists.
 ### `remove_legacy_autostart() -> None`
 
 Remove the legacy XDG autostart desktop file
-(`~/.config/autostart/github-monitor-indicator.desktop`) if it exists. This
+(`~/.config/autostart/forgewatch-indicator.desktop`) if it exists. This
 cleans up entries created by older versions of the install script.
 
 ---

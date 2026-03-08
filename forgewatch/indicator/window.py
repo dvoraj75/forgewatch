@@ -246,7 +246,7 @@ class PRWindow:
         header = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL)
         header.get_style_context().add_class("header")
 
-        title = Gtk.Label(label="GitHub Monitor")
+        title = Gtk.Label(label="ForgeWatch")
         title.set_halign(Gtk.Align.START)
         title.get_style_context().add_class("header-title")
         header.pack_start(title, expand=True, fill=True, padding=0)

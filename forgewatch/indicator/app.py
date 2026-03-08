@@ -1,4 +1,4 @@
-"""Application orchestrator for the github-monitor indicator.
+"""Application orchestrator for the forgewatch indicator.
 
 Wires together the D-Bus client, system tray icon, and popup window
 into a running application.  Uses ``gbulb`` to run both GTK (GLib main
@@ -12,7 +12,7 @@ import logging
 import signal
 from typing import TYPE_CHECKING
 
-from github_monitor.url_opener import open_url
+from forgewatch.url_opener import open_url
 
 from .client import DaemonClient
 

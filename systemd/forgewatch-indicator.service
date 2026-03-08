@@ -1,15 +1,15 @@
 # Reference copy — do not install manually.
-# Use `github-monitor service install` which resolves the correct
+# Use `forgewatch service install` which resolves the correct
 # ExecStart path for your installation.
 
 [Unit]
-Description=GitHub PR Monitor - Panel Indicator
-After=github-monitor.service
-Wants=github-monitor.service
+Description=ForgeWatch — Panel Indicator
+After=forgewatch.service
+Wants=forgewatch.service
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/github-monitor-indicator
+ExecStart=%h/.local/bin/forgewatch-indicator
 Restart=on-failure
 RestartSec=10
 

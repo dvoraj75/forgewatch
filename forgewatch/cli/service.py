@@ -5,8 +5,8 @@ from __future__ import annotations
 import sys
 from typing import TYPE_CHECKING
 
-from github_monitor.cli import _checks, _systemd
-from github_monitor.cli._output import err
+from forgewatch.cli import _checks, _systemd
+from forgewatch.cli._output import err
 
 if TYPE_CHECKING:
     from collections.abc import Callable

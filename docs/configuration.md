@@ -1,11 +1,11 @@
 # Configuration
 
-github-monitor is configured via a TOML file and optional environment variable
+ForgeWatch is configured via a TOML file and optional environment variable
 overrides.
 
 ## Config file location
 
-> **Tip:** Run `github-monitor setup` (or `github-monitor setup --config-only`)
+> **Tip:** Run `forgewatch setup` (or `forgewatch setup --config-only`)
 > to create the config file interactively. The wizard prompts for the token,
 > username, poll interval, and optional repository filter, then writes
 > `config.toml` to the default location.
@@ -14,9 +14,9 @@ The config file path is resolved in this order:
 
 1. **Explicit path** -- passed directly to `load_config(path)` or via the `-c` /
    `--config` CLI flag
-2. **`GITHUB_MONITOR_CONFIG` env var** -- if set, its value is used as the config
+2. **`FORGEWATCH_CONFIG` env var** -- if set, its value is used as the config
    file path
-3. **Default path** -- `~/.config/github-monitor/config.toml`
+3. **Default path** -- `~/.config/forgewatch/config.toml`
 
 If no config file is found at the resolved path, a `ConfigError` is raised.
 
@@ -40,7 +40,7 @@ If no config file is found at the resolved path, a `ConfigError` is raised.
 
 ## GitHub token setup
 
-github-monitor needs a GitHub personal access token (PAT) to query the
+ForgeWatch needs a GitHub personal access token (PAT) to query the
 Search API for pull requests. GitHub offers two token types: **classic** and
 **fine-grained**. Either works; fine-grained tokens allow tighter scoping and
 are GitHub's recommended path going forward.
@@ -54,7 +54,7 @@ supported.
    (classic)** in GitHub, or go directly to:\
    <https://github.com/settings/tokens/new>
 2. Fill in the form:
-   - **Note** -- a descriptive name, e.g. `github-monitor`
+   - **Note** -- a descriptive name, e.g. `forgewatch`
    - **Expiration** -- pick a duration (90 days recommended; see
      [Security tips](#security-tips) below)
    - **Scopes** -- tick the required scope from the table below
@@ -66,7 +66,7 @@ supported.
 | `repo` | You monitor **private** repositories | Full read/write access to private repos (GitHub does not offer a read-only private-repo scope for classic tokens) |
 | `public_repo` | You **only** monitor public repositories | Read access to public repo data -- sufficient if all your review requests are on public repos |
 
-> **Why `repo`?** github-monitor calls the GitHub Search Issues API
+> **Why `repo`?** ForgeWatch calls the GitHub Search Issues API
 > (`search/issues`) to find PRs where you are a reviewer or assignee. For
 > private repos, this endpoint requires the `repo` scope. If you only work
 > with public repos, `public_repo` is enough.
@@ -80,7 +80,7 @@ access to specific repositories or organisations.
    Fine-grained tokens** in GitHub, or go directly to:\
    <https://github.com/settings/personal-access-tokens/new>
 2. Fill in the form:
-   - **Token name** -- e.g. `github-monitor`
+   - **Token name** -- e.g. `forgewatch`
    - **Expiration** -- pick a duration (90 days recommended)
    - **Resource owner** -- select your personal account or the organisation
      whose repos you want to monitor
@@ -121,7 +121,7 @@ access to specific repositories or organisations.
 | Variable | Overrides | Notes |
 |---|---|---|
 | `GITHUB_TOKEN` | `github_token` | Takes precedence over the file value. Useful for keeping tokens out of config files. |
-| `GITHUB_MONITOR_CONFIG` | Config file path | Alternative to passing `-c` on the command line. |
+| `FORGEWATCH_CONFIG` | Config file path | Alternative to passing `-c` on the command line. |
 
 `GITHUB_TOKEN` is applied after the config file is loaded, so you can have a
 config file without a token and supply it via the environment instead.
@@ -244,9 +244,9 @@ repos = []
 Configuration can be reloaded at runtime by sending `SIGHUP` to the daemon:
 
 ```bash
-systemctl --user reload github-monitor
+systemctl --user reload forgewatch
 # or
-kill -HUP $(pidof github-monitor)
+kill -HUP $(pidof forgewatch)
 ```
 
 On reload, the daemon re-reads the config file (respecting the original `-c`
@@ -258,13 +258,13 @@ immediately.
 
 ```python
 from pathlib import Path
-from github_monitor.config import load_config
+from forgewatch.config import load_config
 
 # Load from default path
 cfg = load_config()
 
 # Load from explicit path
-cfg = load_config(Path("/etc/github-monitor/config.toml"))
+cfg = load_config(Path("/etc/forgewatch/config.toml"))
 
 # Load from string path
 cfg = load_config("/tmp/test-config.toml")

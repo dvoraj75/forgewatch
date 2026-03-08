@@ -1,8 +1,8 @@
 """D-Bus interface for exposing daemon state on the session bus.
 
 Exports a service interface under the well-known name
-``org.github_monitor.Daemon`` at object path
-``/org/github_monitor/Daemon``.  External tools (panel plugins, CLI
+``org.forgewatch.Daemon`` at object path
+``/org/forgewatch/Daemon``.  External tools (panel plugins, CLI
 scripts) can call methods to query PR state or trigger a refresh, and
 subscribe to the ``PullRequestsChanged`` signal for live updates.
 """
@@ -25,9 +25,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # D-Bus naming constants
-BUS_NAME = "org.github_monitor.Daemon"
-OBJECT_PATH = "/org/github_monitor/Daemon"
-INTERFACE_NAME = "org.github_monitor.Daemon"
+BUS_NAME = "org.forgewatch.Daemon"
+OBJECT_PATH = "/org/forgewatch/Daemon"
+INTERFACE_NAME = "org.forgewatch.Daemon"
 
 
 # ---------------------------------------------------------------------------
@@ -70,8 +70,8 @@ def _serialize_status(status: StoreStatus) -> str:
 # ---------------------------------------------------------------------------
 
 
-class GithubMonitorInterface(ServiceInterface):
-    """D-Bus interface: ``org.github_monitor.Daemon``.
+class ForgewatchInterface(ServiceInterface):
+    """D-Bus interface: ``org.forgewatch.Daemon``.
 
     Provides methods for querying PR state and triggering a refresh, plus
     a signal emitted whenever the PR list changes.
@@ -132,15 +132,15 @@ class GithubMonitorInterface(ServiceInterface):
 async def setup_dbus(
     store: PRStore,
     poll_callback: Callable[[], Awaitable[None]],
-) -> tuple[MessageBus, GithubMonitorInterface]:
+) -> tuple[MessageBus, ForgewatchInterface]:
     """Connect to the session bus, export the interface, and request the name.
 
     Returns the connected :class:`MessageBus` and the exported
-    :class:`GithubMonitorInterface` so the caller can emit signals and
+    :class:`ForgewatchInterface` so the caller can emit signals and
     disconnect cleanly on shutdown.
     """
     bus = await MessageBus().connect()
-    interface = GithubMonitorInterface(store, poll_callback)
+    interface = ForgewatchInterface(store, poll_callback)
     bus.export(OBJECT_PATH, interface)
     await bus.request_name(BUS_NAME)
     logger.info("D-Bus service exported as %s at %s", BUS_NAME, OBJECT_PATH)

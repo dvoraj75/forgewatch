@@ -1,6 +1,6 @@
 # `config.py` -- API reference
 
-Module: `github_monitor.config`
+Module: `forgewatch.config`
 
 Handles loading, validating, and representing the daemon's configuration.
 
@@ -8,8 +8,8 @@ Handles loading, validating, and representing the daemon's configuration.
 
 | Name | Type | Value | Description |
 |---|---|---|---|
-| `CONFIG_DIR` | `Path` | `~/.config/github-monitor` | Default config directory |
-| `CONFIG_PATH` | `Path` | `~/.config/github-monitor/config.toml` | Default config file path |
+| `CONFIG_DIR` | `Path` | `~/.config/forgewatch` | Default config directory |
+| `CONFIG_PATH` | `Path` | `~/.config/forgewatch/config.toml` | Default config file path |
 
 Internal constants (prefixed with `_`):
 
@@ -127,13 +127,13 @@ A `Config` instance with all fields validated.
 ### Example
 
 ```python
-from github_monitor.config import load_config
+from forgewatch.config import load_config
 
-# Default path (~/.config/github-monitor/config.toml)
+# Default path (~/.config/forgewatch/config.toml)
 cfg = load_config()
 
 # Explicit path
-cfg = load_config("/etc/github-monitor/config.toml")
+cfg = load_config("/etc/forgewatch/config.toml")
 
 # String path also works
 cfg = load_config("./my-config.toml")
@@ -148,8 +148,8 @@ def _resolve_path(path: Path | str | None) -> Path:
 Resolves the config file path using three-tier precedence:
 
 1. If `path` is provided, use it (converting `str` to `Path` if needed)
-2. If `GITHUB_MONITOR_CONFIG` env var is set, use its value
-3. Fall back to `CONFIG_PATH` (`~/.config/github-monitor/config.toml`)
+2. If `FORGEWATCH_CONFIG` env var is set, use its value
+3. Fall back to `CONFIG_PATH` (`~/.config/forgewatch/config.toml`)
 
 ### Raises
 
@@ -222,7 +222,7 @@ individual validation helpers above.
 Tests in `tests/test_config.py` covering:
 
 - Happy path (valid config, minimal config, string path)
-- Environment variable overrides (`GITHUB_TOKEN`, `GITHUB_MONITOR_CONFIG`, token
+- Environment variable overrides (`GITHUB_TOKEN`, `FORGEWATCH_CONFIG`, token
   from env when missing in file)
 - Validation errors (missing file, invalid TOML, missing token/username, invalid
   poll_interval type/value, invalid repo format, repos not a list)

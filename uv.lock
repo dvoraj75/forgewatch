@@ -338,6 +338,54 @@ wheels = [
 ]
 
 [[package]]
+name = "forgewatch"
+version = "1.4.0.dev1"
+source = { editable = "." }
+dependencies = [
+    { name = "aiohttp" },
+    { name = "dbus-next" },
+]
+
+[package.optional-dependencies]
+indicator = [
+    { name = "gbulb" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "aioresponses" },
+    { name = "mypy" },
+    { name = "pip-audit" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-xdist" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "aiohttp", specifier = ">=3.9,<4" },
+    { name = "dbus-next", specifier = ">=0.2.3,<1" },
+    { name = "gbulb", marker = "extra == 'indicator'", specifier = ">=0.6" },
+]
+provides-extras = ["indicator"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "aioresponses", specifier = ">=0.7" },
+    { name = "mypy", specifier = ">=1.13" },
+    { name = "pip-audit", specifier = ">=2.7" },
+    { name = "pre-commit", specifier = ">=4.5.1" },
+    { name = "pytest", specifier = ">=8" },
+    { name = "pytest-asyncio", specifier = ">=0.23" },
+    { name = "pytest-cov", specifier = ">=7.0.0" },
+    { name = "pytest-xdist", specifier = ">=3.8.0" },
+    { name = "ruff", specifier = ">=0.8" },
+]
+
+[[package]]
 name = "frozenlist"
 version = "1.8.0"
 source = { registry = "https://pypi.org/simple" }
@@ -420,54 +468,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/6c/f4/742e5e1534780e6661623ea1df58c9e86650c484297759051fc9c0ee336b/gbulb-0.6.6.tar.gz", hash = "sha256:b66bb1637e956a605636ac2820747583983715a87742beaddeb2e41da37b5154", size = 33326, upload-time = "2024-09-13T02:59:12.461Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/f6/8e/8055b9cc6c47e125b4758d716e12dfbf5f146a83d6e1f0417a3c8d4be269/gbulb-0.6.6-py3-none-any.whl", hash = "sha256:4cd003a1bc98a8923ea45b746a6cf69b745a6bfa9f061f8d4edbb628c9702ace", size = 19484, upload-time = "2024-09-13T02:59:09.58Z" },
-]
-
-[[package]]
-name = "github-monitor"
-version = "1.3.1"
-source = { editable = "." }
-dependencies = [
-    { name = "aiohttp" },
-    { name = "dbus-next" },
-]
-
-[package.optional-dependencies]
-indicator = [
-    { name = "gbulb" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "aioresponses" },
-    { name = "mypy" },
-    { name = "pip-audit" },
-    { name = "pre-commit" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-xdist" },
-    { name = "ruff" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiohttp", specifier = ">=3.9,<4" },
-    { name = "dbus-next", specifier = ">=0.2.3,<1" },
-    { name = "gbulb", marker = "extra == 'indicator'", specifier = ">=0.6" },
-]
-provides-extras = ["indicator"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "aioresponses", specifier = ">=0.7" },
-    { name = "mypy", specifier = ">=1.13" },
-    { name = "pip-audit", specifier = ">=2.7" },
-    { name = "pre-commit", specifier = ">=4.5.1" },
-    { name = "pytest", specifier = ">=8" },
-    { name = "pytest-asyncio", specifier = ">=0.23" },
-    { name = "pytest-cov", specifier = ">=7.0.0" },
-    { name = "pytest-xdist", specifier = ">=3.8.0" },
-    { name = "ruff", specifier = ">=0.8" },
 ]
 
 [[package]]

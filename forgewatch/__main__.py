@@ -1,11 +1,11 @@
-"""Allow ``python -m github_monitor`` to launch the daemon.
+"""Allow ``python -m forgewatch`` to launch the daemon.
 
 Builds a unified argument parser that exposes both daemon flags
 (``-c``, ``-v``) and management subcommands (``setup``, ``service``,
-``uninstall``).  Running ``github-monitor --help`` shows everything.
+``uninstall``).  Running ``forgewatch --help`` shows everything.
 
 When no subcommand is given the daemon starts; otherwise the request
-is dispatched to the CLI handler via :func:`github_monitor.cli.dispatch`.
+is dispatched to the CLI handler via :func:`forgewatch.cli.dispatch`.
 """
 
 from __future__ import annotations
@@ -22,8 +22,8 @@ def _build_parser() -> argparse.ArgumentParser:
     from .cli import add_subcommands  # noqa: PLC0415
 
     parser = argparse.ArgumentParser(
-        prog="github-monitor",
-        description="GitHub PR Monitor",
+        prog="forgewatch",
+        description="ForgeWatch — GitHub PR Monitor",
         epilog="Run without a command to start the daemon.",
     )
     parser.add_argument(
@@ -47,7 +47,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    """CLI entry point for github-monitor.
+    """CLI entry point for forgewatch.
 
     Parses arguments with the unified parser and dispatches to the
     management CLI or starts the daemon.

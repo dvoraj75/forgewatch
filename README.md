@@ -1,6 +1,6 @@
-# github-monitor
+# ForgeWatch
 
-![CI](https://github.com/dvoraj75/github-monitor/actions/workflows/ci.yml/badge.svg) ![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue) ![License: MIT](https://img.shields.io/badge/license-MIT-green) ![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000) ![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue) ![Async](https://img.shields.io/badge/async-asyncio-purple)
+![CI](https://github.com/dvoraj75/forgewatch/actions/workflows/ci.yml/badge.svg) ![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue) ![License: MIT](https://img.shields.io/badge/license-MIT-green) ![Code style: Ruff](https://img.shields.io/badge/code%20style-ruff-000000) ![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue) ![Async](https://img.shields.io/badge/async-asyncio-purple)
 
 A Python daemon that polls GitHub for pull requests assigned to you (as reviewer
 or assignee), holds state in memory, exposes it over D-Bus, and sends desktop
@@ -68,8 +68,8 @@ For a deeper dive, see [docs/architecture.md](docs/architecture.md).
 ### Install
 
 ```bash
-git clone https://github.com/dvoraj75/github-monitor.git
-cd github-monitor
+git clone https://github.com/dvoraj75/forgewatch.git
+cd forgewatch
 uv sync            # installs runtime + dev dependencies
 ```
 
@@ -78,9 +78,9 @@ uv sync            # installs runtime + dev dependencies
 Copy the example config and fill in your details:
 
 ```bash
-mkdir -p ~/.config/github-monitor
-cp config.example.toml ~/.config/github-monitor/config.toml
-$EDITOR ~/.config/github-monitor/config.toml
+mkdir -p ~/.config/forgewatch
+cp config.example.toml ~/.config/forgewatch/config.toml
+$EDITOR ~/.config/forgewatch/config.toml
 ```
 
 ```toml
@@ -108,39 +108,39 @@ See [docs/configuration.md](docs/configuration.md) for the full reference.
 
 ```bash
 # Direct execution
-uv run github-monitor
+uv run forgewatch
 
 # Or via python -m
-uv run python -m github_monitor
+uv run python -m forgewatch
 ```
 
 Command-line flags:
 
 ```bash
 # Custom config path
-uv run github-monitor -c /path/to/config.toml
+uv run forgewatch -c /path/to/config.toml
 
 # Verbose logging (DEBUG level)
-uv run github-monitor -v
+uv run forgewatch -v
 ```
 
 ### Management commands
 
-github-monitor includes built-in CLI subcommands for setup, service management,
+ForgeWatch includes built-in CLI subcommands for setup, service management,
 and uninstall:
 
 ```bash
-uv run github-monitor setup                     # interactive setup wizard
-uv run github-monitor setup --config-only       # only create config.toml
-uv run github-monitor setup --service-only      # only install + start systemd services
-uv run github-monitor service status             # show service status
-uv run github-monitor service start              # start services
-uv run github-monitor service stop               # stop services
-uv run github-monitor service restart            # restart services
-uv run github-monitor service install            # install systemd unit files
-uv run github-monitor service enable             # enable autostart
-uv run github-monitor service disable            # disable autostart
-uv run github-monitor uninstall                  # remove services + optionally config
+uv run forgewatch setup                     # interactive setup wizard
+uv run forgewatch setup --config-only       # only create config.toml
+uv run forgewatch setup --service-only      # only install + start systemd services
+uv run forgewatch service status             # show service status
+uv run forgewatch service start              # start services
+uv run forgewatch service stop               # stop services
+uv run forgewatch service restart            # restart services
+uv run forgewatch service install            # install systemd unit files
+uv run forgewatch service enable             # enable autostart
+uv run forgewatch service disable            # disable autostart
+uv run forgewatch uninstall                  # remove services + optionally config
 ```
 
 ### Run the indicator (optional)
@@ -151,67 +151,63 @@ daemon over D-Bus. It requires GTK3 and AppIndicator3 system packages (see
 
 ```bash
 # Start the indicator (daemon must be running)
-uv run github-monitor-indicator
+uv run forgewatch-indicator
 
 # Or via python -m
-uv run python -m github_monitor.indicator
+uv run python -m forgewatch.indicator
 
 # Verbose logging
-uv run github-monitor-indicator -v
+uv run forgewatch-indicator -v
 ```
 
 ### Automated install / update / uninstall
 
-The recommended way to set up github-monitor as a systemd user service is with
+The recommended way to set up ForgeWatch as a systemd user service is with
 the built-in setup wizard:
 
 ```bash
-github-monitor setup                     # full setup: config + services
-github-monitor setup --config-only       # only create config.toml
-github-monitor setup --service-only      # only install + start systemd services
+forgewatch setup                     # full setup: config + services
+forgewatch setup --config-only       # only create config.toml
+forgewatch setup --service-only      # only install + start systemd services
 ```
 
 To update to the latest version:
 
 ```bash
-pip install --upgrade github-monitor     # or: pipx upgrade github-monitor
-github-monitor service install           # update service files
-github-monitor service restart           # restart with new version
+pip install --upgrade forgewatch     # or: pipx upgrade forgewatch
+forgewatch service install           # update service files
+forgewatch service restart           # restart with new version
 ```
 
 To uninstall:
 
 ```bash
-github-monitor uninstall                 # stop services, remove units, optionally remove config
+forgewatch uninstall                 # stop services, remove units, optionally remove config
 ```
-
-> **Note:** The `install.sh`, `update.sh`, and `uninstall.sh` shell scripts are
-> **deprecated** and will be removed in a future release. Use the CLI
-> subcommands above instead.
 
 ### Systemd user service (manual setup)
 
-If you prefer to set things up manually instead of using `github-monitor setup`:
+If you prefer to set things up manually instead of using `forgewatch setup`:
 
 ```bash
 # Install the daemon service
 mkdir -p ~/.config/systemd/user/
-cp systemd/github-monitor.service ~/.config/systemd/user/
+cp systemd/forgewatch.service ~/.config/systemd/user/
 
 # Enable and start
 systemctl --user daemon-reload
-systemctl --user enable --now github-monitor
+systemctl --user enable --now forgewatch
 
 # Check logs
-journalctl --user -u github-monitor -f
+journalctl --user -u forgewatch -f
 ```
 
 To also run the system tray indicator as a service:
 
 ```bash
-cp systemd/github-monitor-indicator.service ~/.config/systemd/user/
+cp systemd/forgewatch-indicator.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now github-monitor-indicator
+systemctl --user enable --now forgewatch-indicator
 ```
 
 The indicator service depends on the daemon -- systemd starts them in the
@@ -223,14 +219,11 @@ configuration, security hardening details, and troubleshooting.
 ## Project structure
 
 ```
-github-monitor/
+forgewatch/
 ├── config.example.toml          # Example configuration file
 ├── pyproject.toml               # Project metadata, deps, tool config
-├── install.sh                   # DEPRECATED -- use 'github-monitor setup'
-├── update.sh                    # DEPRECATED -- use 'pip install --upgrade github-monitor'
-├── uninstall.sh                 # DEPRECATED -- use 'github-monitor uninstall'
 │
-├── github_monitor/
+├── forgewatch/
 │   ├── __init__.py              # Package marker (__version__)
 │   ├── __main__.py              # Entry point -- dispatches to CLI subcommands or daemon
 │   ├── config.py                # Configuration loading and validation
@@ -254,7 +247,7 @@ github-monitor/
 │   │
 │   └── indicator/               # System tray indicator (optional, separate process)
 │       ├── __init__.py
-│       ├── __main__.py          # python -m github_monitor.indicator entry point
+│       ├── __main__.py          # python -m forgewatch.indicator entry point
 │       ├── app.py               # Application orchestrator
 │       ├── client.py            # D-Bus client for daemon communication
 │       ├── tray.py              # System tray icon (AppIndicator3)
@@ -265,8 +258,8 @@ github-monitor/
 │       └── resources/           # SVG icons for the tray indicator
 │
 ├── systemd/
-│   ├── github-monitor.service           # Systemd user service (daemon)
-│   └── github-monitor-indicator.service # Systemd user service (indicator)
+│   ├── forgewatch.service           # Systemd user service (daemon)
+│   └── forgewatch-indicator.service # Systemd user service (indicator)
 │
 ├── tests/
 │   ├── conftest.py              # Shared test fixtures

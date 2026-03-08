@@ -1,6 +1,6 @@
 # `daemon.py` -- API reference
 
-Module: `github_monitor.daemon`
+Module: `forgewatch.daemon`
 
 The main orchestrator that wires together all components: configuration
 loading, GitHub API polling, state management, desktop notifications, D-Bus
@@ -30,7 +30,7 @@ Creates the following internal components:
 | `store` | `PRStore` | In-memory state store for tracked PRs |
 | `client` | `GitHubClient` | Async GitHub API client (initialized with `base_url` and `max_retries` from config) |
 | `bus` | `MessageBus \| None` | D-Bus connection (set during `start()` if D-Bus is enabled) |
-| `interface` | `GithubMonitorInterface \| None` | D-Bus interface (set during `start()` if D-Bus is enabled) |
+| `interface` | `ForgewatchInterface \| None` | D-Bus interface (set during `start()` if D-Bus is enabled) |
 
 ### `async start() -> None`
 
@@ -154,8 +154,8 @@ Daemon._poll_once()
 ```python
 import asyncio
 from pathlib import Path
-from github_monitor.config import load_config
-from github_monitor.daemon import Daemon
+from forgewatch.config import load_config
+from forgewatch.daemon import Daemon
 
 config_path = Path("/path/to/config.toml")
 config = load_config(config_path)
@@ -176,14 +176,14 @@ parsing and logging setup.
 ## CLI entry point (`__main__.py`)
 
 The `main()` function in `__main__.py` is the single entry point for all
-`github-monitor` invocations.  A unified argument parser exposes both daemon
+`forgewatch` invocations.  A unified argument parser exposes both daemon
 flags (`-c`, `-v`) and management subcommands (`setup`, `service`, `uninstall`)
-so that `github-monitor --help` shows everything:
+so that `forgewatch --help` shows everything:
 
 ```
-usage: github-monitor [-h] [-c CONFIG] [-v] {setup,service,uninstall} ...
+usage: forgewatch [-h] [-c CONFIG] [-v] {setup,service,uninstall} ...
 
-GitHub PR Monitor
+ForgeWatch — GitHub PR Monitor
 
 positional arguments:
   {setup,service,uninstall}
@@ -209,11 +209,11 @@ parsing, `main()` checks `args.command`:
 ### Management subcommands
 
 ```bash
-github-monitor setup                # interactive setup wizard
-github-monitor setup --config-only  # only create config.toml
-github-monitor setup --service-only # only install + start systemd services
-github-monitor service <action>     # start | stop | restart | status | install | enable | disable
-github-monitor uninstall            # remove services, optionally remove config
+forgewatch setup                # interactive setup wizard
+forgewatch setup --config-only  # only create config.toml
+forgewatch setup --service-only # only install + start systemd services
+forgewatch service <action>     # start | stop | restart | status | install | enable | disable
+forgewatch uninstall            # remove services, optionally remove config
 ```
 
 See [cli module docs](cli.md) for the full API reference.
@@ -228,13 +228,13 @@ See [cli module docs](cli.md) for the full API reference.
 The config is loaded before `logging.basicConfig()` so that `config.log_level`
 is applied at startup. The `-v` flag overrides the config log level.
 
-The entry point is registered in `pyproject.toml` as `github-monitor`, so
+The entry point is registered in `pyproject.toml` as `forgewatch`, so
 after installation it can be invoked directly:
 
 ```bash
-github-monitor                          # run with defaults
-github-monitor -v                       # debug logging
-github-monitor -c /path/to/config.toml  # custom config
+forgewatch                          # run with defaults
+forgewatch -v                       # debug logging
+forgewatch -c /path/to/config.toml  # custom config
 ```
 
 ## Design notes

@@ -1,11 +1,11 @@
-"""Tests for github_monitor.cli.uninstall."""
+"""Tests for forgewatch.cli.uninstall."""
 
 from __future__ import annotations
 
 from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
-from github_monitor.cli.uninstall import (
+from forgewatch.cli.uninstall import (
     _print_summary,
     _remove_config,
     _stop_daemon,
@@ -27,7 +27,7 @@ if TYPE_CHECKING:
 class TestStopIndicator:
     """Verify indicator stop/disable logic."""
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_stops_and_disables_when_active_and_enabled(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = True
         mock_systemd.is_enabled.return_value = True
@@ -35,7 +35,7 @@ class TestStopIndicator:
         mock_systemd.stop.assert_called_once_with(mock_systemd.INDICATOR_SERVICE)
         mock_systemd.disable.assert_called_once_with(mock_systemd.INDICATOR_SERVICE)
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_skips_stop_when_inactive(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = False
         mock_systemd.is_enabled.return_value = True
@@ -43,7 +43,7 @@ class TestStopIndicator:
         mock_systemd.stop.assert_not_called()
         mock_systemd.disable.assert_called_once_with(mock_systemd.INDICATOR_SERVICE)
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_skips_disable_when_not_enabled(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = True
         mock_systemd.is_enabled.return_value = False
@@ -51,7 +51,7 @@ class TestStopIndicator:
         mock_systemd.stop.assert_called_once_with(mock_systemd.INDICATOR_SERVICE)
         mock_systemd.disable.assert_not_called()
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_does_nothing_when_inactive_and_not_enabled(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = False
         mock_systemd.is_enabled.return_value = False
@@ -68,7 +68,7 @@ class TestStopIndicator:
 class TestStopDaemon:
     """Verify daemon stop/disable logic."""
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_stops_and_disables_when_active_and_enabled(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = True
         mock_systemd.is_enabled.return_value = True
@@ -76,7 +76,7 @@ class TestStopDaemon:
         mock_systemd.stop.assert_called_once_with(mock_systemd.DAEMON_SERVICE)
         mock_systemd.disable.assert_called_once_with(mock_systemd.DAEMON_SERVICE)
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_skips_stop_when_inactive(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = False
         mock_systemd.is_enabled.return_value = True
@@ -84,7 +84,7 @@ class TestStopDaemon:
         mock_systemd.stop.assert_not_called()
         mock_systemd.disable.assert_called_once_with(mock_systemd.DAEMON_SERVICE)
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_skips_disable_when_not_enabled(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = True
         mock_systemd.is_enabled.return_value = False
@@ -92,7 +92,7 @@ class TestStopDaemon:
         mock_systemd.stop.assert_called_once_with(mock_systemd.DAEMON_SERVICE)
         mock_systemd.disable.assert_not_called()
 
-    @patch("github_monitor.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._systemd")
     def test_does_nothing_when_inactive_and_not_enabled(self, mock_systemd: MagicMock) -> None:
         mock_systemd.is_active.return_value = False
         mock_systemd.is_enabled.return_value = False
@@ -110,26 +110,26 @@ class TestRemoveConfig:
     """Verify config removal prompt and behaviour."""
 
     def test_removes_when_user_says_yes(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_dir.mkdir()
         (config_dir / "config.toml").write_text("token = abc")
 
         with (
-            patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.uninstall.ask_yes_no", return_value=True),
+            patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.uninstall.ask_yes_no", return_value=True),
         ):
             _remove_config()
 
         assert not config_dir.exists()
 
     def test_preserves_when_user_says_no(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_dir.mkdir()
         (config_dir / "config.toml").write_text("token = abc")
 
         with (
-            patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.uninstall.ask_yes_no", return_value=False),
+            patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.uninstall.ask_yes_no", return_value=False),
         ):
             _remove_config()
 
@@ -140,8 +140,8 @@ class TestRemoveConfig:
         config_dir = tmp_path / "nonexistent"
 
         with (
-            patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.uninstall.ask_yes_no") as mock_ask,
+            patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.uninstall.ask_yes_no") as mock_ask,
         ):
             _remove_config()  # should not raise
 
@@ -149,12 +149,12 @@ class TestRemoveConfig:
         mock_ask.assert_not_called()
 
     def test_prompt_defaults_to_no(self, tmp_path: Path) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_dir.mkdir()
 
         with (
-            patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir),
-            patch("github_monitor.cli.uninstall.ask_yes_no", return_value=False) as mock_ask,
+            patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir),
+            patch("forgewatch.cli.uninstall.ask_yes_no", return_value=False) as mock_ask,
         ):
             _remove_config()
 
@@ -173,22 +173,22 @@ class TestPrintSummary:
 
     def test_includes_complete_message(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         config_dir = tmp_path / "nonexistent"
-        with patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir):
+        with patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir):
             _print_summary()
         output = capsys.readouterr().out
         assert "Uninstall complete!" in output
 
     def test_shows_pip_uninstall_hint(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         config_dir = tmp_path / "nonexistent"
-        with patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir):
+        with patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir):
             _print_summary()
         output = capsys.readouterr().out
-        assert "pip uninstall github-monitor" in output
+        assert "pip uninstall forgewatch" in output
 
     def test_shows_config_path_when_preserved(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-        config_dir = tmp_path / "github-monitor"
+        config_dir = tmp_path / "forgewatch"
         config_dir.mkdir()
-        with patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir):
+        with patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir):
             _print_summary()
         output = capsys.readouterr().out
         assert str(config_dir) in output
@@ -196,7 +196,7 @@ class TestPrintSummary:
 
     def test_no_config_reminder_when_removed(self, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
         config_dir = tmp_path / "nonexistent"
-        with patch("github_monitor.cli.uninstall.CONFIG_DIR", config_dir):
+        with patch("forgewatch.cli.uninstall.CONFIG_DIR", config_dir):
             _print_summary()
         output = capsys.readouterr().out
         assert "preserved" not in output
@@ -210,12 +210,12 @@ class TestPrintSummary:
 class TestRunUninstall:
     """Verify the full uninstall flow."""
 
-    @patch("github_monitor.cli.uninstall._print_summary")
-    @patch("github_monitor.cli.uninstall._remove_config")
-    @patch("github_monitor.cli.uninstall._systemd")
-    @patch("github_monitor.cli.uninstall._stop_daemon")
-    @patch("github_monitor.cli.uninstall._stop_indicator")
-    @patch("github_monitor.cli.uninstall.check_systemctl", return_value=True)
+    @patch("forgewatch.cli.uninstall._print_summary")
+    @patch("forgewatch.cli.uninstall._remove_config")
+    @patch("forgewatch.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._stop_daemon")
+    @patch("forgewatch.cli.uninstall._stop_indicator")
+    @patch("forgewatch.cli.uninstall.check_systemctl", return_value=True)
     def test_full_flow_calls_all_steps(
         self,
         mock_check: MagicMock,
@@ -235,12 +235,12 @@ class TestRunUninstall:
         mock_remove_config.assert_called_once()
         mock_summary.assert_called_once()
 
-    @patch("github_monitor.cli.uninstall._print_summary")
-    @patch("github_monitor.cli.uninstall._remove_config")
-    @patch("github_monitor.cli.uninstall._systemd")
-    @patch("github_monitor.cli.uninstall._stop_daemon")
-    @patch("github_monitor.cli.uninstall._stop_indicator")
-    @patch("github_monitor.cli.uninstall.check_systemctl", return_value=True)
+    @patch("forgewatch.cli.uninstall._print_summary")
+    @patch("forgewatch.cli.uninstall._remove_config")
+    @patch("forgewatch.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._stop_daemon")
+    @patch("forgewatch.cli.uninstall._stop_indicator")
+    @patch("forgewatch.cli.uninstall.check_systemctl", return_value=True)
     def test_stops_indicator_before_daemon(
         self,
         mock_check: MagicMock,
@@ -259,12 +259,12 @@ class TestRunUninstall:
 
         assert call_order == ["indicator", "daemon"]
 
-    @patch("github_monitor.cli.uninstall._print_summary")
-    @patch("github_monitor.cli.uninstall._remove_config")
-    @patch("github_monitor.cli.uninstall._systemd")
-    @patch("github_monitor.cli.uninstall._stop_daemon")
-    @patch("github_monitor.cli.uninstall._stop_indicator")
-    @patch("github_monitor.cli.uninstall.check_systemctl", return_value=False)
+    @patch("forgewatch.cli.uninstall._print_summary")
+    @patch("forgewatch.cli.uninstall._remove_config")
+    @patch("forgewatch.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._stop_daemon")
+    @patch("forgewatch.cli.uninstall._stop_indicator")
+    @patch("forgewatch.cli.uninstall.check_systemctl", return_value=False)
     def test_skips_stop_when_no_systemctl(
         self,
         mock_check: MagicMock,
@@ -288,12 +288,12 @@ class TestRunUninstall:
         mock_remove_config.assert_called_once()
         mock_summary.assert_called_once()
 
-    @patch("github_monitor.cli.uninstall._print_summary")
-    @patch("github_monitor.cli.uninstall._remove_config")
-    @patch("github_monitor.cli.uninstall._systemd")
-    @patch("github_monitor.cli.uninstall._stop_daemon")
-    @patch("github_monitor.cli.uninstall._stop_indicator")
-    @patch("github_monitor.cli.uninstall.check_systemctl", return_value=False)
+    @patch("forgewatch.cli.uninstall._print_summary")
+    @patch("forgewatch.cli.uninstall._remove_config")
+    @patch("forgewatch.cli.uninstall._systemd")
+    @patch("forgewatch.cli.uninstall._stop_daemon")
+    @patch("forgewatch.cli.uninstall._stop_indicator")
+    @patch("forgewatch.cli.uninstall.check_systemctl", return_value=False)
     def test_no_systemctl_still_removes_legacy_autostart(
         self,
         mock_check: MagicMock,
@@ -308,13 +308,13 @@ class TestRunUninstall:
 
     def test_banner_is_printed(self, capsys: pytest.CaptureFixture[str]) -> None:
         with (
-            patch("github_monitor.cli.uninstall._print_summary"),
-            patch("github_monitor.cli.uninstall._remove_config"),
-            patch("github_monitor.cli.uninstall._systemd"),
-            patch("github_monitor.cli.uninstall._stop_daemon"),
-            patch("github_monitor.cli.uninstall._stop_indicator"),
-            patch("github_monitor.cli.uninstall.check_systemctl", return_value=False),
+            patch("forgewatch.cli.uninstall._print_summary"),
+            patch("forgewatch.cli.uninstall._remove_config"),
+            patch("forgewatch.cli.uninstall._systemd"),
+            patch("forgewatch.cli.uninstall._stop_daemon"),
+            patch("forgewatch.cli.uninstall._stop_indicator"),
+            patch("forgewatch.cli.uninstall.check_systemctl", return_value=False),
         ):
             run_uninstall()
         output = capsys.readouterr().out
-        assert "GitHub Monitor Uninstall" in output
+        assert "ForgeWatch Uninstall" in output
