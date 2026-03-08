@@ -1,12 +1,12 @@
-# Contributing to github-monitor
+# Contributing to ForgeWatch
 
 Thanks for your interest in contributing!
 
 ## Development setup
 
 ```bash
-git clone https://github.com/dvoraj75/github-monitor.git
-cd github-monitor
+git clone https://github.com/dvoraj75/forgewatch.git
+cd forgewatch
 uv sync
 ```
 
@@ -16,14 +16,14 @@ uv sync
 uv lock --check                # verify lockfile matches pyproject.toml
 uv run ruff check .            # lint
 uv run ruff format --check .   # format check
-uv run mypy github_monitor     # type check
+uv run mypy forgewatch         # type check
 uv run pytest                  # tests (ALL passing)
 uv run pip-audit               # dependency vulnerability scan
 ```
 
 ### CLI package
 
-If you modify or add CLI subcommands in `github_monitor/cli/`, run the CLI
+If you modify or add CLI subcommands in `forgewatch/cli/`, run the CLI
 tests separately to verify:
 
 ```bash
@@ -31,13 +31,6 @@ uv run pytest tests/test_cli_setup.py tests/test_cli_service.py tests/test_cli_u
 ```
 
 The CLI package uses **stdlib only** (no extra dependencies).
-
-### Shell scripts (deprecated)
-
-The shell scripts `install.sh`, `update.sh`, and `uninstall.sh` are
-**deprecated** in favour of `github-monitor setup`, `pip install --upgrade`,
-and `github-monitor uninstall` respectively. If you modify them, run
-[ShellCheck](https://www.shellcheck.net/): `shellcheck *.sh`
 
 All checks must pass before a PR will be merged (CI runs them automatically).
 

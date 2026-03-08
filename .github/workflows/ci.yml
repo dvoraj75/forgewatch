@@ -36,7 +36,7 @@ jobs:
         run: uv run ruff format --check .
 
       - name: Type check
-        run: uv run mypy github_monitor
+        run: uv run mypy forgewatch
 
       - name: ShellCheck
         uses: ludeeus/action-shellcheck@2.0.0

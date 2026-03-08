@@ -12,8 +12,8 @@ import sys
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-from github_monitor.indicator._window_helpers import escape_markup, relative_time, sort_prs, status_text
-from github_monitor.indicator.models import DaemonStatus, PRInfo
+from forgewatch.indicator._window_helpers import escape_markup, relative_time, sort_prs, status_text
+from forgewatch.indicator.models import DaemonStatus, PRInfo
 
 # ---------------------------------------------------------------------------
 # Test helper
@@ -322,9 +322,9 @@ for _mod in ("gi", "gi.repository"):
     sys.modules[_mod] = _gi_stub  # type: ignore[assignment]
 
 # Evict any cached import so window.py re-imports with the stubbed gi.
-sys.modules.pop("github_monitor.indicator.window", None)
+sys.modules.pop("forgewatch.indicator.window", None)
 
-from github_monitor.indicator.window import PRWindow  # noqa: E402
+from forgewatch.indicator.window import PRWindow  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # PRWindow — construction

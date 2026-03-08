@@ -1,11 +1,11 @@
 [Unit]
-Description=GitHub PR Monitor
+Description=ForgeWatch — GitHub PR Monitor
 After=network-online.target dbus.service
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=@@GITHUB_MONITOR_EXEC@@
+ExecStart=@@FORGEWATCH_EXEC@@
 ExecReload=kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=10
@@ -15,7 +15,7 @@ Environment=GITHUB_TOKEN=
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=read-only
-ReadWritePaths=%h/.config/github-monitor
+ReadWritePaths=%h/.config/forgewatch
 
 [Install]
 WantedBy=default.target

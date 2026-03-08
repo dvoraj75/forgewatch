@@ -3,8 +3,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "github-monitor"
-version = "1.3.1"
+name = "forgewatch"
+version = "1.4.0.dev1"
 description = "Daemon that monitors GitHub PRs and exposes state over D-Bus"
 readme = "README.md"
 license = "MIT"
@@ -42,14 +42,14 @@ indicator = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/dvoraj75/github-monitor"
-Repository = "https://github.com/dvoraj75/github-monitor"
-Documentation = "https://github.com/dvoraj75/github-monitor/tree/main/docs"
-"Bug Tracker" = "https://github.com/dvoraj75/github-monitor/issues"
+Homepage = "https://github.com/dvoraj75/forgewatch"
+Repository = "https://github.com/dvoraj75/forgewatch"
+Documentation = "https://github.com/dvoraj75/forgewatch/tree/main/docs"
+"Bug Tracker" = "https://github.com/dvoraj75/forgewatch/issues"
 
 [project.scripts]
-github-monitor = "github_monitor.__main__:main"
-github-monitor-indicator = "github_monitor.indicator.__main__:main"
+forgewatch = "forgewatch.__main__:main"
+forgewatch-indicator = "forgewatch.indicator.__main__:main"
 
 [dependency-groups]
 dev = [
@@ -94,7 +94,7 @@ ignore = [
     "PLR0913", # test helpers often mirror dataclass constructors
     "ERA001",  # commented-out code used as section headers in tests
 ]
-"github_monitor/cli/_systemd.py" = [
+"forgewatch/cli/_systemd.py" = [
     "S603",    # subprocess call with non-literal args — all args are internal constants
     "S607",    # partial executable path — systemctl is a standard system binary
 ]
@@ -118,4 +118,4 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts="-ra -v --cov=github_monitor --cov-report=term --cov-fail-under=90 -n auto"
+addopts="-ra -v --cov=forgewatch --cov-report=term --cov-fail-under=90 -n auto"

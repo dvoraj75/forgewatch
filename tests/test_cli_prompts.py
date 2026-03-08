@@ -1,4 +1,4 @@
-"""Tests for github_monitor.cli._prompts."""
+"""Tests for forgewatch.cli._prompts."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from github_monitor.cli._prompts import _read_input, ask_int, ask_list, ask_string, ask_yes_no
+from forgewatch.cli._prompts import _read_input, ask_int, ask_list, ask_string, ask_yes_no
 
 # ---------------------------------------------------------------------------
 # _read_input — low-level input wrapper
@@ -29,8 +29,8 @@ class TestReadInput:
     def test_eof_error_causes_sys_exit(self) -> None:
         with (
             patch("builtins.input", side_effect=EOFError),
-            patch("github_monitor.cli._prompts.sys.stderr") as mock_stderr,
-            patch("github_monitor.cli._prompts.err"),
+            patch("forgewatch.cli._prompts.sys.stderr") as mock_stderr,
+            patch("forgewatch.cli._prompts.err"),
             pytest.raises(SystemExit, match="1"),
         ):
             _read_input("prompt: ")
@@ -39,8 +39,8 @@ class TestReadInput:
     def test_eof_error_prints_error_message(self) -> None:
         with (
             patch("builtins.input", side_effect=EOFError),
-            patch("github_monitor.cli._prompts.sys.stderr"),
-            patch("github_monitor.cli._prompts.err") as mock_err,
+            patch("forgewatch.cli._prompts.sys.stderr"),
+            patch("forgewatch.cli._prompts.err") as mock_err,
             pytest.raises(SystemExit),
         ):
             _read_input("prompt: ")
@@ -88,7 +88,7 @@ class TestAskString:
         mock_input = MagicMock(side_effect=["", "", "finally"])
         with (
             patch("builtins.input", mock_input),
-            patch("github_monitor.cli._prompts.warn") as mock_warn,
+            patch("forgewatch.cli._prompts.warn") as mock_warn,
         ):
             result = ask_string("Name", required=True)
         assert result == "finally"
@@ -151,7 +151,7 @@ class TestAskYesNo:
         mock_input = MagicMock(side_effect=["maybe", "dunno", "y"])
         with (
             patch("builtins.input", mock_input),
-            patch("github_monitor.cli._prompts.warn") as mock_warn,
+            patch("forgewatch.cli._prompts.warn") as mock_warn,
         ):
             result = ask_yes_no("Continue?")
         assert result is True
@@ -184,7 +184,7 @@ class TestAskInt:
         mock_input = MagicMock(side_effect=["abc", "12.5", "7"])
         with (
             patch("builtins.input", mock_input),
-            patch("github_monitor.cli._prompts.warn") as mock_warn,
+            patch("forgewatch.cli._prompts.warn") as mock_warn,
         ):
             result = ask_int("Count", default=10, minimum=1)
         assert result == 7
@@ -194,7 +194,7 @@ class TestAskInt:
         mock_input = MagicMock(side_effect=["5", "29", "30"])
         with (
             patch("builtins.input", mock_input),
-            patch("github_monitor.cli._prompts.warn") as mock_warn,
+            patch("forgewatch.cli._prompts.warn") as mock_warn,
         ):
             result = ask_int("Interval", default=300, minimum=30)
         assert result == 30

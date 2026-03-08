@@ -1,11 +1,11 @@
-"""Tests for github_monitor.store."""
+"""Tests for forgewatch.store."""
 
 from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from github_monitor.poller import PullRequest
-from github_monitor.store import PRStore, StateDiff, StoreStatus
+from forgewatch.poller import PullRequest
+from forgewatch.store import PRStore, StateDiff, StoreStatus
 
 # ---------------------------------------------------------------------------
 # Helpers

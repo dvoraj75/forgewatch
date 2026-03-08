@@ -1,4 +1,4 @@
-"""Tests for github_monitor.cli._systemd."""
+"""Tests for forgewatch.cli._systemd."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-from github_monitor.cli._systemd import (
+from forgewatch.cli._systemd import (
     DAEMON_SERVICE,
     INDICATOR_SERVICE,
     _read_service_file,
@@ -52,10 +52,10 @@ class TestConstants:
     """Verify module-level constants."""
 
     def test_daemon_service_name(self) -> None:
-        assert DAEMON_SERVICE == "github-monitor.service"
+        assert DAEMON_SERVICE == "forgewatch.service"
 
     def test_indicator_service_name(self) -> None:
-        assert INDICATOR_SERVICE == "github-monitor-indicator.service"
+        assert INDICATOR_SERVICE == "forgewatch-indicator.service"
 
 
 # ---------------------------------------------------------------------------
@@ -69,10 +69,10 @@ class TestReadServiceFile:
     def test_reads_daemon_service(self) -> None:
         content = _read_service_file(DAEMON_SERVICE)
         assert "[Unit]" in content
-        assert "GitHub PR Monitor" in content
+        assert "ForgeWatch" in content
         assert "[Service]" in content
         assert "[Install]" in content
-        assert "@@GITHUB_MONITOR_EXEC@@" in content
+        assert "@@FORGEWATCH_EXEC@@" in content
 
     def test_reads_indicator_service(self) -> None:
         content = _read_service_file(INDICATOR_SERVICE)
@@ -80,7 +80,7 @@ class TestReadServiceFile:
         assert "Indicator" in content
         assert "[Service]" in content
         assert "[Install]" in content
-        assert "@@GITHUB_MONITOR_INDICATOR_EXEC@@" in content
+        assert "@@FORGEWATCH_INDICATOR_EXEC@@" in content
 
 
 # ---------------------------------------------------------------------------
@@ -92,7 +92,7 @@ class TestRunSystemctl:
     """Tests for _run_systemctl()."""
 
     def test_calls_systemctl_with_user_flag(self) -> None:
-        with patch("github_monitor.cli._systemd.subprocess.run", return_value=_make_completed_process()) as mock_run:
+        with patch("forgewatch.cli._systemd.subprocess.run", return_value=_make_completed_process()) as mock_run:
             _run_systemctl("daemon-reload")
         mock_run.assert_called_once_with(
             ["systemctl", "--user", "daemon-reload"],
@@ -101,10 +101,10 @@ class TestRunSystemctl:
         )
 
     def test_passes_additional_args(self) -> None:
-        with patch("github_monitor.cli._systemd.subprocess.run", return_value=_make_completed_process()) as mock_run:
-            _run_systemctl("is-active", "--quiet", "github-monitor.service")
+        with patch("forgewatch.cli._systemd.subprocess.run", return_value=_make_completed_process()) as mock_run:
+            _run_systemctl("is-active", "--quiet", "forgewatch.service")
         mock_run.assert_called_once_with(
-            ["systemctl", "--user", "is-active", "--quiet", "github-monitor.service"],
+            ["systemctl", "--user", "is-active", "--quiet", "forgewatch.service"],
             check=False,
             capture_output=True,
         )
@@ -119,22 +119,22 @@ class TestResolveExec:
     """Tests for _resolve_exec()."""
 
     def test_returns_resolved_path(self) -> None:
-        with patch("github_monitor.cli._systemd.shutil.which", return_value="/usr/local/bin/github-monitor"):
-            result = _resolve_exec("github-monitor")
-        assert result == "/usr/local/bin/github-monitor"
+        with patch("forgewatch.cli._systemd.shutil.which", return_value="/usr/local/bin/forgewatch"):
+            result = _resolve_exec("forgewatch")
+        assert result == "/usr/local/bin/forgewatch"
 
     def test_resolves_symlinks(self, tmp_path: Path) -> None:
         real = tmp_path / "real-binary"
         real.touch()
         link = tmp_path / "link-binary"
         link.symlink_to(real)
-        with patch("github_monitor.cli._systemd.shutil.which", return_value=str(link)):
-            result = _resolve_exec("github-monitor")
+        with patch("forgewatch.cli._systemd.shutil.which", return_value=str(link)):
+            result = _resolve_exec("forgewatch")
         assert result == str(real)
 
     def test_raises_when_not_found(self) -> None:
         with (
-            patch("github_monitor.cli._systemd.shutil.which", return_value=None),
+            patch("forgewatch.cli._systemd.shutil.which", return_value=None),
             pytest.raises(FileNotFoundError, match="Could not find 'no-such-binary'"),
         ):
             _resolve_exec("no-such-binary")
@@ -150,11 +150,11 @@ class TestInstallServiceFiles:
 
     def test_installs_daemon_service_only(self, tmp_path: Path) -> None:
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
 
@@ -167,14 +167,14 @@ class TestInstallServiceFiles:
 
     def test_installs_both_services_when_indicator_requested(self, tmp_path: Path) -> None:
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
             patch(
-                "github_monitor.cli._systemd._resolve_exec",
+                "forgewatch.cli._systemd._resolve_exec",
                 side_effect=lambda name: f"/venv/bin/{name}",
             ),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files(include_indicator=True)
 
@@ -184,11 +184,11 @@ class TestInstallServiceFiles:
     def test_creates_directory_if_missing(self, tmp_path: Path) -> None:
         target = tmp_path / "deep" / "nested" / "dir"
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", target),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", target),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
         assert target.exists()
@@ -196,25 +196,25 @@ class TestInstallServiceFiles:
 
     def test_calls_daemon_reload_after_install(self, tmp_path: Path) -> None:
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload") as mock_reload,
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload") as mock_reload,
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
         mock_reload.assert_called_once()
 
     def test_prints_ok_for_each_installed_file(self, tmp_path: Path) -> None:
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
             patch(
-                "github_monitor.cli._systemd._resolve_exec",
+                "forgewatch.cli._systemd._resolve_exec",
                 side_effect=lambda name: f"/venv/bin/{name}",
             ),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
             install_service_files(include_indicator=True)
         assert mock_ok.call_count == 2
@@ -225,11 +225,11 @@ class TestInstallServiceFiles:
     def test_overwrites_existing_service_file(self, tmp_path: Path) -> None:
         (tmp_path / DAEMON_SERVICE).write_text("old content")
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
         content = (tmp_path / DAEMON_SERVICE).read_text()
@@ -238,44 +238,44 @@ class TestInstallServiceFiles:
 
     def test_substitutes_daemon_exec_placeholder(self, tmp_path: Path) -> None:
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/opt/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/opt/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
         content = (tmp_path / DAEMON_SERVICE).read_text()
-        assert "ExecStart=/opt/venv/bin/github-monitor" in content
-        assert "@@GITHUB_MONITOR_EXEC@@" not in content
+        assert "ExecStart=/opt/venv/bin/forgewatch" in content
+        assert "@@FORGEWATCH_EXEC@@" not in content
 
     def test_substitutes_indicator_exec_placeholder(self, tmp_path: Path) -> None:
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
             patch(
-                "github_monitor.cli._systemd._resolve_exec",
+                "forgewatch.cli._systemd._resolve_exec",
                 side_effect=lambda name: f"/opt/venv/bin/{name}",
             ),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files(include_indicator=True)
         content = (tmp_path / INDICATOR_SERVICE).read_text()
-        assert "ExecStart=/opt/venv/bin/github-monitor-indicator" in content
-        assert "@@GITHUB_MONITOR_INDICATOR_EXEC@@" not in content
+        assert "ExecStart=/opt/venv/bin/forgewatch-indicator" in content
+        assert "@@FORGEWATCH_INDICATOR_EXEC@@" not in content
 
     def test_disables_and_reenables_previously_enabled_daemon(self, tmp_path: Path) -> None:
         """When reinstalling an already-enabled daemon, disable before overwrite and re-enable after."""
         (tmp_path / DAEMON_SERVICE).write_text("old content")
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=True),
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_ctl,
-            patch("github_monitor.cli._systemd.enable") as mock_enable,
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=True),
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_ctl,
+            patch("forgewatch.cli._systemd.enable") as mock_enable,
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
         mock_ctl.assert_called_once_with("disable", DAEMON_SERVICE)
@@ -286,16 +286,16 @@ class TestInstallServiceFiles:
         (tmp_path / DAEMON_SERVICE).write_text("old content")
         (tmp_path / INDICATOR_SERVICE).write_text("old content")
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
             patch(
-                "github_monitor.cli._systemd._resolve_exec",
+                "forgewatch.cli._systemd._resolve_exec",
                 side_effect=lambda name: f"/venv/bin/{name}",
             ),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=True),
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_ctl,
-            patch("github_monitor.cli._systemd.enable") as mock_enable,
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=True),
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_ctl,
+            patch("forgewatch.cli._systemd.enable") as mock_enable,
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files(include_indicator=True)
         # Both should have been disabled before overwrite
@@ -310,13 +310,13 @@ class TestInstallServiceFiles:
     def test_skips_disable_for_fresh_install(self, tmp_path: Path) -> None:
         """No disable call when service files don't exist yet (fresh install)."""
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled") as mock_is_enabled,
-            patch("github_monitor.cli._systemd._run_systemctl") as mock_ctl,
-            patch("github_monitor.cli._systemd.enable") as mock_enable,
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled") as mock_is_enabled,
+            patch("forgewatch.cli._systemd._run_systemctl") as mock_ctl,
+            patch("forgewatch.cli._systemd.enable") as mock_enable,
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
         # File doesn't exist, so is_enabled should not be called
@@ -329,13 +329,13 @@ class TestInstallServiceFiles:
         """When reinstalling a service that exists but is not enabled, skip disable+enable."""
         (tmp_path / DAEMON_SERVICE).write_text("old content")
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd._resolve_exec", return_value="/venv/bin/github-monitor"),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.is_enabled", return_value=False),
-            patch("github_monitor.cli._systemd._run_systemctl") as mock_ctl,
-            patch("github_monitor.cli._systemd.enable") as mock_enable,
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd._resolve_exec", return_value="/venv/bin/forgewatch"),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.is_enabled", return_value=False),
+            patch("forgewatch.cli._systemd._run_systemctl") as mock_ctl,
+            patch("forgewatch.cli._systemd.enable") as mock_enable,
+            patch("forgewatch.cli._systemd.ok"),
         ):
             install_service_files()
         mock_ctl.assert_not_called()
@@ -354,9 +354,9 @@ class TestRemoveServiceFiles:
         (tmp_path / DAEMON_SERVICE).write_text("x")
         (tmp_path / INDICATOR_SERVICE).write_text("x")
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.ok"),
         ):
             remove_service_files()
         assert not (tmp_path / DAEMON_SERVICE).exists()
@@ -365,9 +365,9 @@ class TestRemoveServiceFiles:
     def test_handles_missing_files_gracefully(self, tmp_path: Path) -> None:
         """No error when files don't exist."""
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
             remove_service_files()  # should not raise
         mock_ok.assert_not_called()
@@ -376,9 +376,9 @@ class TestRemoveServiceFiles:
         """Only daemon service exists; indicator should be skipped."""
         (tmp_path / DAEMON_SERVICE).write_text("x")
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd.daemon_reload"),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.daemon_reload"),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
             remove_service_files()
         assert not (tmp_path / DAEMON_SERVICE).exists()
@@ -387,9 +387,9 @@ class TestRemoveServiceFiles:
 
     def test_calls_daemon_reload_after_removal(self, tmp_path: Path) -> None:
         with (
-            patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path),
-            patch("github_monitor.cli._systemd.daemon_reload") as mock_reload,
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path),
+            patch("forgewatch.cli._systemd.daemon_reload") as mock_reload,
+            patch("forgewatch.cli._systemd.ok"),
         ):
             remove_service_files()
         mock_reload.assert_called_once()
@@ -404,7 +404,7 @@ class TestDaemonReload:
     """Tests for daemon_reload()."""
 
     def test_calls_systemctl_daemon_reload(self) -> None:
-        with patch("github_monitor.cli._systemd._run_systemctl") as mock_run:
+        with patch("forgewatch.cli._systemd._run_systemctl") as mock_run:
             daemon_reload()
         mock_run.assert_called_once_with("daemon-reload")
 
@@ -418,34 +418,34 @@ class TestIsActive:
     """Tests for is_active()."""
 
     def test_returns_true_when_active(self) -> None:
-        with patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)):
-            assert is_active("github-monitor.service") is True
+        with patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)):
+            assert is_active("forgewatch.service") is True
 
     def test_returns_false_when_inactive(self) -> None:
-        with patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(3)):
-            assert is_active("github-monitor.service") is False
+        with patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(3)):
+            assert is_active("forgewatch.service") is False
 
     def test_passes_correct_args(self) -> None:
-        with patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_run:
-            is_active("github-monitor.service")
-        mock_run.assert_called_once_with("is-active", "--quiet", "github-monitor.service")
+        with patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_run:
+            is_active("forgewatch.service")
+        mock_run.assert_called_once_with("is-active", "--quiet", "forgewatch.service")
 
 
 class TestIsEnabled:
     """Tests for is_enabled()."""
 
     def test_returns_true_when_enabled(self) -> None:
-        with patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)):
-            assert is_enabled("github-monitor.service") is True
+        with patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)):
+            assert is_enabled("forgewatch.service") is True
 
     def test_returns_false_when_disabled(self) -> None:
-        with patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(1)):
-            assert is_enabled("github-monitor.service") is False
+        with patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(1)):
+            assert is_enabled("forgewatch.service") is False
 
     def test_passes_correct_args(self) -> None:
-        with patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_run:
-            is_enabled("github-monitor.service")
-        mock_run.assert_called_once_with("is-enabled", "--quiet", "github-monitor.service")
+        with patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_run:
+            is_enabled("forgewatch.service")
+        mock_run.assert_called_once_with("is-enabled", "--quiet", "forgewatch.service")
 
 
 # ---------------------------------------------------------------------------
@@ -458,29 +458,29 @@ class TestStart:
 
     def test_success_prints_ok(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
-            start("github-monitor.service")
+            start("forgewatch.service")
         mock_ok.assert_called_once()
         assert "Started" in mock_ok.call_args[0][0]
 
     def test_failure_prints_warn(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
-            patch("github_monitor.cli._systemd.warn") as mock_warn,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
+            patch("forgewatch.cli._systemd.warn") as mock_warn,
         ):
-            start("github-monitor.service")
+            start("forgewatch.service")
         mock_warn.assert_called_once()
         assert "Failed" in mock_warn.call_args[0][0]
 
     def test_passes_correct_args(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_run,
-            patch("github_monitor.cli._systemd.ok"),
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)) as mock_run,
+            patch("forgewatch.cli._systemd.ok"),
         ):
-            start("github-monitor.service")
-        mock_run.assert_called_once_with("start", "github-monitor.service")
+            start("forgewatch.service")
+        mock_run.assert_called_once_with("start", "forgewatch.service")
 
 
 class TestStop:
@@ -488,19 +488,19 @@ class TestStop:
 
     def test_success_prints_ok(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
-            stop("github-monitor.service")
+            stop("forgewatch.service")
         mock_ok.assert_called_once()
         assert "Stopped" in mock_ok.call_args[0][0]
 
     def test_failure_prints_warn(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
-            patch("github_monitor.cli._systemd.warn") as mock_warn,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
+            patch("forgewatch.cli._systemd.warn") as mock_warn,
         ):
-            stop("github-monitor.service")
+            stop("forgewatch.service")
         mock_warn.assert_called_once()
 
 
@@ -509,19 +509,19 @@ class TestRestart:
 
     def test_success_prints_ok(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
-            restart("github-monitor.service")
+            restart("forgewatch.service")
         mock_ok.assert_called_once()
         assert "Restarted" in mock_ok.call_args[0][0]
 
     def test_failure_prints_warn(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
-            patch("github_monitor.cli._systemd.warn") as mock_warn,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
+            patch("forgewatch.cli._systemd.warn") as mock_warn,
         ):
-            restart("github-monitor.service")
+            restart("forgewatch.service")
         mock_warn.assert_called_once()
 
 
@@ -530,19 +530,19 @@ class TestEnable:
 
     def test_success_prints_ok(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
-            enable("github-monitor.service")
+            enable("forgewatch.service")
         mock_ok.assert_called_once()
         assert "Enabled" in mock_ok.call_args[0][0]
 
     def test_failure_prints_warn(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
-            patch("github_monitor.cli._systemd.warn") as mock_warn,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
+            patch("forgewatch.cli._systemd.warn") as mock_warn,
         ):
-            enable("github-monitor.service")
+            enable("forgewatch.service")
         mock_warn.assert_called_once()
 
 
@@ -551,19 +551,19 @@ class TestDisable:
 
     def test_success_prints_ok(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(0)),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
-            disable("github-monitor.service")
+            disable("forgewatch.service")
         mock_ok.assert_called_once()
         assert "Disabled" in mock_ok.call_args[0][0]
 
     def test_failure_prints_warn(self) -> None:
         with (
-            patch("github_monitor.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
-            patch("github_monitor.cli._systemd.warn") as mock_warn,
+            patch("forgewatch.cli._systemd._run_systemctl", return_value=_make_completed_process(1)),
+            patch("forgewatch.cli._systemd.warn") as mock_warn,
         ):
-            disable("github-monitor.service")
+            disable("forgewatch.service")
         mock_warn.assert_called_once()
 
 
@@ -576,10 +576,10 @@ class TestPrintStatus:
     """Tests for print_status()."""
 
     def test_calls_systemctl_status(self) -> None:
-        with patch("github_monitor.cli._systemd.subprocess.run") as mock_run:
-            print_status("github-monitor.service")
+        with patch("forgewatch.cli._systemd.subprocess.run") as mock_run:
+            print_status("forgewatch.service")
         mock_run.assert_called_once_with(
-            ["systemctl", "--user", "status", "github-monitor.service", "--no-pager"],
+            ["systemctl", "--user", "status", "forgewatch.service", "--no-pager"],
             check=False,
         )
 
@@ -594,11 +594,11 @@ class TestServiceFileInstalled:
 
     def test_returns_true_when_file_exists(self, tmp_path: Path) -> None:
         (tmp_path / DAEMON_SERVICE).write_text("x")
-        with patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path):
+        with patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path):
             assert service_file_installed(DAEMON_SERVICE) is True
 
     def test_returns_false_when_file_missing(self, tmp_path: Path) -> None:
-        with patch("github_monitor.cli._systemd.SERVICE_DIR", tmp_path):
+        with patch("forgewatch.cli._systemd.SERVICE_DIR", tmp_path):
             assert service_file_installed(DAEMON_SERVICE) is False
 
 
@@ -611,11 +611,11 @@ class TestRemoveLegacyAutostart:
     """Tests for remove_legacy_autostart()."""
 
     def test_removes_existing_desktop_file(self, tmp_path: Path) -> None:
-        desktop_file = tmp_path / "github-monitor-indicator.desktop"
-        desktop_file.write_text("[Desktop Entry]\nExec=github-monitor-indicator")
+        desktop_file = tmp_path / "forgewatch-indicator.desktop"
+        desktop_file.write_text("[Desktop Entry]\nExec=forgewatch-indicator")
         with (
-            patch("github_monitor.cli._systemd._LEGACY_AUTOSTART", desktop_file),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd._LEGACY_AUTOSTART", desktop_file),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
             remove_legacy_autostart()
         assert not desktop_file.exists()
@@ -623,10 +623,10 @@ class TestRemoveLegacyAutostart:
         assert "legacy" in mock_ok.call_args[0][0].lower()
 
     def test_does_nothing_when_file_missing(self, tmp_path: Path) -> None:
-        desktop_file = tmp_path / "github-monitor-indicator.desktop"
+        desktop_file = tmp_path / "forgewatch-indicator.desktop"
         with (
-            patch("github_monitor.cli._systemd._LEGACY_AUTOSTART", desktop_file),
-            patch("github_monitor.cli._systemd.ok") as mock_ok,
+            patch("forgewatch.cli._systemd._LEGACY_AUTOSTART", desktop_file),
+            patch("forgewatch.cli._systemd.ok") as mock_ok,
         ):
             remove_legacy_autostart()  # should not raise
         mock_ok.assert_not_called()

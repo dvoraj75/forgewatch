@@ -1,11 +1,11 @@
 # Architecture
 
-This document describes the high-level design of github-monitor, the
+This document describes the high-level design of ForgeWatch, the
 interactions between its components, and the rationale behind key decisions.
 
 ## Overview
 
-github-monitor is a long-running Python daemon designed for a single purpose:
+ForgeWatch is a long-running Python daemon designed for a single purpose:
 keep you informed about GitHub pull requests that need your attention. It runs as
 a systemd user service, polls the GitHub API on a timer, diffs the results
 against its in-memory state, sends desktop notifications for new PRs, and
@@ -46,7 +46,7 @@ scripts) can query it.
 ### Configuration (`config.py`)
 
 Loads and validates a TOML configuration file. Supports three-tier path
-resolution (explicit path > `GITHUB_MONITOR_CONFIG` env var > default XDG
+resolution (explicit path > `FORGEWATCH_CONFIG` env var > default XDG
 path), environment variable overrides for the token, and strict validation of
 all fields.
 
@@ -81,7 +81,7 @@ See [modules/store.md](modules/store.md) for the full API reference.
 ### D-Bus Interface (`dbus_service.py`)
 
 Exposes the daemon's state on the session bus under the well-known name
-`org.github_monitor.Daemon` at object path `/org/github_monitor/Daemon`.
+`org.forgewatch.Daemon` at object path `/org/forgewatch/Daemon`.
 Provides three methods (`GetPullRequests`, `GetStatus`, `Refresh`) and one
 signal (`PullRequestsChanged`). All data is serialised as JSON strings over
 the D-Bus wire format.
@@ -135,7 +135,7 @@ modules. It consists of:
 - **Orchestrator** (`app.py`) -- wires the D-Bus client, tray icon, and popup
   window. Bridges synchronous GTK callbacks and asynchronous D-Bus calls.
 - **D-Bus client** (`client.py`) -- connects to the daemon's
-  `org.github_monitor.Daemon` bus name, subscribes to the
+  `org.forgewatch.Daemon` bus name, subscribes to the
   `PullRequestsChanged` signal for live updates, and auto-reconnects when the
   daemon disappears.
 - **Tray icon** (`tray.py`) -- AppIndicator3-based system tray icon with a PR
@@ -162,7 +162,7 @@ See [modules/indicator.md](modules/indicator.md) for the full API reference.
 ### CLI Management (`cli/`)
 
 A management interface providing `setup`, `service`, and `uninstall`
-subcommands for installing and managing github-monitor as a systemd user
+subcommands for installing and managing ForgeWatch as a systemd user
 service. Uses stdlib only (no extra dependencies beyond the Python standard
 library). The package consists of:
 

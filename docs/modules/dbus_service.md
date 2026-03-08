@@ -1,9 +1,9 @@
 # `dbus_service.py` -- API reference
 
-Module: `github_monitor.dbus_service`
+Module: `forgewatch.dbus_service`
 
 Exposes the daemon's state on the D-Bus session bus under the well-known name
-`org.github_monitor.Daemon`. External tools (panel plugins, CLI scripts) can
+`org.forgewatch.Daemon`. External tools (panel plugins, CLI scripts) can
 call methods to query PR state or trigger a refresh, and subscribe to the
 `PullRequestsChanged` signal for live updates.
 
@@ -11,9 +11,9 @@ call methods to query PR state or trigger a refresh, and subscribe to the
 
 | Constant | Value | Description |
 |---|---|---|
-| `BUS_NAME` | `org.github_monitor.Daemon` | Well-known D-Bus bus name |
-| `OBJECT_PATH` | `/org/github_monitor/Daemon` | Object path where the interface is exported |
-| `INTERFACE_NAME` | `org.github_monitor.Daemon` | D-Bus interface name |
+| `BUS_NAME` | `org.forgewatch.Daemon` | Well-known D-Bus bus name |
+| `OBJECT_PATH` | `/org/forgewatch/Daemon` | Object path where the interface is exported |
+| `INTERFACE_NAME` | `org.forgewatch.Daemon` | D-Bus interface name |
 
 ## Serialisation helpers
 
@@ -32,14 +32,14 @@ Serialise a list of `PullRequest` objects to a JSON string (array of objects).
 Serialise a `StoreStatus` to a JSON string with keys: `pr_count` (int),
 `last_updated` (ISO 8601 string or `null`).
 
-## `GithubMonitorInterface`
+## `ForgewatchInterface`
 
 D-Bus service interface class, extends `dbus_next.service.ServiceInterface`.
 
 ### Constructor
 
 ```python
-GithubMonitorInterface(
+ForgewatchInterface(
     store: PRStore,
     poll_callback: Callable[[], Awaitable[None]],
 )
@@ -105,14 +105,14 @@ The daemon calls this signal after each poll cycle that produces a non-empty
 async def setup_dbus(
     store: PRStore,
     poll_callback: Callable[[], Awaitable[None]],
-) -> tuple[MessageBus, GithubMonitorInterface]:
+) -> tuple[MessageBus, ForgewatchInterface]:
 ```
 
 Connect to the D-Bus session bus, create and export the interface, and request
 the well-known bus name.
 
 **Returns** a tuple of the connected `MessageBus` and the
-`GithubMonitorInterface` instance. The caller should:
+`ForgewatchInterface` instance. The caller should:
 
 - Call `interface.PullRequestsChanged()` after poll cycles with changes
 - Call `bus.disconnect()` on shutdown
@@ -120,8 +120,8 @@ the well-known bus name.
 ## Usage example
 
 ```python
-from github_monitor.store import PRStore
-from github_monitor.dbus_service import setup_dbus
+from forgewatch.store import PRStore
+from forgewatch.dbus_service import setup_dbus
 
 store = PRStore()
 
@@ -144,22 +144,22 @@ Once the daemon is running, test the interface from the command line:
 
 ```bash
 # Introspect the interface
-busctl --user introspect org.github_monitor.Daemon /org/github_monitor/Daemon
+busctl --user introspect org.forgewatch.Daemon /org/forgewatch/Daemon
 
 # Call GetPullRequests
-busctl --user call org.github_monitor.Daemon /org/github_monitor/Daemon \
-    org.github_monitor.Daemon GetPullRequests
+busctl --user call org.forgewatch.Daemon /org/forgewatch/Daemon \
+    org.forgewatch.Daemon GetPullRequests
 
 # Call GetStatus
-busctl --user call org.github_monitor.Daemon /org/github_monitor/Daemon \
-    org.github_monitor.Daemon GetStatus
+busctl --user call org.forgewatch.Daemon /org/forgewatch/Daemon \
+    org.forgewatch.Daemon GetStatus
 
 # Trigger a refresh
-busctl --user call org.github_monitor.Daemon /org/github_monitor/Daemon \
-    org.github_monitor.Daemon Refresh
+busctl --user call org.forgewatch.Daemon /org/forgewatch/Daemon \
+    org.forgewatch.Daemon Refresh
 
 # Monitor signals
-dbus-monitor --session "interface='org.github_monitor.Daemon'"
+dbus-monitor --session "interface='org.forgewatch.Daemon'"
 ```
 
 ## Design notes

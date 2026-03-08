@@ -1,4 +1,4 @@
-"""Tests for github_monitor.__main__."""
+"""Tests for forgewatch.__main__."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from github_monitor.__main__ import _build_parser, main
-from github_monitor.config import Config, ConfigError
+from forgewatch.__main__ import _build_parser, main
+from forgewatch.config import Config, ConfigError
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -42,9 +42,9 @@ class TestMainHappyPath:
         mock_daemon_instance.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config) as mock_load,
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon_instance) as mock_daemon_cls,
-            patch("sys.argv", ["github-monitor"]),
+            patch("forgewatch.config.load_config", return_value=config) as mock_load,
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon_instance) as mock_daemon_cls,
+            patch("sys.argv", ["forgewatch"]),
         ):
             main()
 
@@ -69,9 +69,9 @@ class TestMainConfigFlag:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config) as mock_load,
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor", "-c", "/opt/ghm/config.toml"]),
+            patch("forgewatch.config.load_config", return_value=config) as mock_load,
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch", "-c", "/opt/ghm/config.toml"]),
         ):
             main()
 
@@ -84,9 +84,9 @@ class TestMainConfigFlag:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config) as mock_load,
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor", "--config", "/etc/ghm.toml"]),
+            patch("forgewatch.config.load_config", return_value=config) as mock_load,
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch", "--config", "/etc/ghm.toml"]),
         ):
             main()
 
@@ -108,9 +108,9 @@ class TestMainVerboseFlag:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config),
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor", "-v"]),
+            patch("forgewatch.config.load_config", return_value=config),
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch", "-v"]),
             patch("logging.basicConfig") as mock_basic_config,
         ):
             main()
@@ -126,9 +126,9 @@ class TestMainVerboseFlag:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config),
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor"]),
+            patch("forgewatch.config.load_config", return_value=config),
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch"]),
             patch("logging.basicConfig") as mock_basic_config,
         ):
             main()
@@ -147,8 +147,8 @@ class TestMainErrorHandling:
 
     def test_config_error_propagates(self) -> None:
         with (
-            patch("github_monitor.config.load_config", side_effect=ConfigError("bad config")),
-            patch("sys.argv", ["github-monitor"]),
+            patch("forgewatch.config.load_config", side_effect=ConfigError("bad config")),
+            patch("sys.argv", ["forgewatch"]),
             pytest.raises(ConfigError, match="bad config"),
         ):
             main()
@@ -160,9 +160,9 @@ class TestMainErrorHandling:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config),
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor"]),
+            patch("forgewatch.config.load_config", return_value=config),
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch"]),
             pytest.raises(RuntimeError, match="dbus failed"),
         ):
             main()
@@ -193,30 +193,30 @@ class TestCliDispatch:
         assert "--config" in help_text
         assert "--verbose" in help_text
 
-    @patch("github_monitor.cli.dispatch")
+    @patch("forgewatch.cli.dispatch")
     def test_dispatches_setup(self, mock_dispatch: MagicMock) -> None:
-        with patch("sys.argv", ["github-monitor", "setup"]):
+        with patch("sys.argv", ["forgewatch", "setup"]):
             main()
         mock_dispatch.assert_called_once()
         assert mock_dispatch.call_args[0][0].command == "setup"
 
-    @patch("github_monitor.cli.dispatch")
+    @patch("forgewatch.cli.dispatch")
     def test_dispatches_service(self, mock_dispatch: MagicMock) -> None:
-        with patch("sys.argv", ["github-monitor", "service", "status"]):
+        with patch("sys.argv", ["forgewatch", "service", "status"]):
             main()
         mock_dispatch.assert_called_once()
         args = mock_dispatch.call_args[0][0]
         assert args.command == "service"
         assert args.action == "status"
 
-    @patch("github_monitor.cli.dispatch")
+    @patch("forgewatch.cli.dispatch")
     def test_dispatches_uninstall(self, mock_dispatch: MagicMock) -> None:
-        with patch("sys.argv", ["github-monitor", "uninstall"]):
+        with patch("sys.argv", ["forgewatch", "uninstall"]):
             main()
         mock_dispatch.assert_called_once()
         assert mock_dispatch.call_args[0][0].command == "uninstall"
 
-    @patch("github_monitor.cli.dispatch")
+    @patch("forgewatch.cli.dispatch")
     def test_does_not_dispatch_for_daemon_flags(self, mock_dispatch: MagicMock) -> None:
         """Daemon flags like -c and -v should NOT trigger CLI dispatch."""
         config = _make_config()
@@ -225,15 +225,15 @@ class TestCliDispatch:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config),
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor", "-c", "config.toml"]),
+            patch("forgewatch.config.load_config", return_value=config),
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch", "-c", "config.toml"]),
         ):
             main()
 
         mock_dispatch.assert_not_called()
 
-    @patch("github_monitor.cli.dispatch")
+    @patch("forgewatch.cli.dispatch")
     def test_does_not_dispatch_for_no_args(self, mock_dispatch: MagicMock) -> None:
         """No arguments should run the daemon, not the CLI."""
         config = _make_config()
@@ -242,15 +242,15 @@ class TestCliDispatch:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config),
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor"]),
+            patch("forgewatch.config.load_config", return_value=config),
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch"]),
         ):
             main()
 
         mock_dispatch.assert_not_called()
 
-    @patch("github_monitor.cli.dispatch")
+    @patch("forgewatch.cli.dispatch")
     def test_does_not_dispatch_for_verbose_flag(self, mock_dispatch: MagicMock) -> None:
         """The -v flag should run the daemon, not the CLI."""
         config = _make_config()
@@ -259,9 +259,9 @@ class TestCliDispatch:
         mock_daemon.stop = AsyncMock()
 
         with (
-            patch("github_monitor.config.load_config", return_value=config),
-            patch("github_monitor.daemon.Daemon", return_value=mock_daemon),
-            patch("sys.argv", ["github-monitor", "-v"]),
+            patch("forgewatch.config.load_config", return_value=config),
+            patch("forgewatch.daemon.Daemon", return_value=mock_daemon),
+            patch("sys.argv", ["forgewatch", "-v"]),
         ):
             main()
 

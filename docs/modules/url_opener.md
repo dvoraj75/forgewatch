@@ -1,6 +1,6 @@
 # `url_opener.py` -- API reference
 
-Module: `github_monitor.url_opener`
+Module: `forgewatch.url_opener`
 
 Shared utility for opening URLs in the default browser. Used by both the
 notifier (for notification click-to-open) and the indicator (for PR row
@@ -105,7 +105,7 @@ The function never raises exceptions.
 ## Usage example
 
 ```python
-from github_monitor.url_opener import open_url
+from forgewatch.url_opener import open_url
 
 # Open a PR in the default browser
 await open_url("https://github.com/owner/repo/pull/42")

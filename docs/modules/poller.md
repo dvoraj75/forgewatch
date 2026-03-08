@@ -1,6 +1,6 @@
 # `poller.py` -- API reference
 
-Module: `github_monitor.poller`
+Module: `forgewatch.poller`
 
 Async HTTP client that queries the GitHub Search Issues API for pull requests
 where the configured user is a requested reviewer or assignee.
@@ -344,7 +344,7 @@ Parses the `Link` HTTP header to extract the URL with `rel="next"`. Returns
 
 ```python
 import asyncio
-from github_monitor.poller import GitHubClient
+from forgewatch.poller import GitHubClient
 
 async def main() -> None:
     client = GitHubClient(

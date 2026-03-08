@@ -25,7 +25,7 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_INDICATOR_ID = "github-monitor-indicator"
+_INDICATOR_ID = "forgewatch-indicator"
 _RESOURCES_DIR = Path(__file__).resolve().parent / "resources"
 
 
@@ -112,7 +112,7 @@ class TrayIcon:
             connected=self._connected,
         )
 
-        self._indicator.set_icon_full(icon_name, "GitHub Monitor")
+        self._indicator.set_icon_full(icon_name, "ForgeWatch")
         self._indicator.set_label(label, "")
         self._indicator.set_title(tooltip)
 

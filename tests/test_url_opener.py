@@ -1,4 +1,4 @@
-"""Tests for github_monitor.url_opener — browser opening via XDG Desktop Portal / xdg-open."""
+"""Tests for forgewatch.url_opener — browser opening via XDG Desktop Portal / xdg-open."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from dbus_next.constants import MessageType
 from dbus_next.errors import DBusError
 
-from github_monitor.url_opener import _open_url_portal, _open_url_xdg, open_url
+from forgewatch.url_opener import _open_url_portal, _open_url_xdg, open_url
 from tests.conftest import _mock_process
 
 if TYPE_CHECKING:
@@ -39,7 +39,7 @@ class TestOpenUrlPortal:
         """Portal call succeeds — returns True, sends correct Message."""
         bus = self._mock_bus()
 
-        with patch("github_monitor.url_opener.MessageBus", return_value=bus):
+        with patch("forgewatch.url_opener.MessageBus", return_value=bus):
             result = await _open_url_portal("https://github.com/owner/repo/pull/1")
 
         assert result is True
@@ -54,7 +54,7 @@ class TestOpenUrlPortal:
         bus = self._mock_bus()
         bus.call.side_effect = DBusError("org.freedesktop.DBus.Error.ServiceUnknown", "not found")
 
-        with patch("github_monitor.url_opener.MessageBus", return_value=bus):
+        with patch("forgewatch.url_opener.MessageBus", return_value=bus):
             result = await _open_url_portal("https://github.com/owner/repo/pull/1")
 
         assert result is False
@@ -65,7 +65,7 @@ class TestOpenUrlPortal:
         bus = AsyncMock()
         bus.connect.side_effect = OSError("no session bus")
 
-        with patch("github_monitor.url_opener.MessageBus", return_value=bus):
+        with patch("forgewatch.url_opener.MessageBus", return_value=bus):
             result = await _open_url_portal("https://github.com/owner/repo/pull/1")
 
         assert result is False
@@ -74,7 +74,7 @@ class TestOpenUrlPortal:
         """Portal returns an ERROR reply — returns False for fallback."""
         bus = self._mock_bus(reply_type=MessageType.ERROR)
 
-        with patch("github_monitor.url_opener.MessageBus", return_value=bus):
+        with patch("forgewatch.url_opener.MessageBus", return_value=bus):
             result = await _open_url_portal("https://github.com/owner/repo/pull/1")
 
         assert result is False
@@ -85,7 +85,7 @@ class TestOpenUrlPortal:
         bus = self._mock_bus()
         bus.call.return_value = None
 
-        with patch("github_monitor.url_opener.MessageBus", return_value=bus):
+        with patch("forgewatch.url_opener.MessageBus", return_value=bus):
             result = await _open_url_portal("https://github.com/owner/repo/pull/1")
 
         assert result is False
@@ -101,10 +101,10 @@ class TestOpenUrlXdg:
 
         with (
             patch(
-                "github_monitor.url_opener.asyncio.create_subprocess_exec",
+                "forgewatch.url_opener.asyncio.create_subprocess_exec",
                 return_value=proc,
             ) as mock_exec,
-            patch("github_monitor.url_opener.logger") as mock_logger,
+            patch("forgewatch.url_opener.logger") as mock_logger,
         ):
             await _open_url_xdg("https://github.com/owner/repo/pull/1")
 
@@ -122,10 +122,10 @@ class TestOpenUrlXdg:
 
         with (
             patch(
-                "github_monitor.url_opener.asyncio.create_subprocess_exec",
+                "forgewatch.url_opener.asyncio.create_subprocess_exec",
                 return_value=proc,
             ),
-            patch("github_monitor.url_opener.logger") as mock_logger,
+            patch("forgewatch.url_opener.logger") as mock_logger,
         ):
             await _open_url_xdg("https://github.com/owner/repo/pull/1")
 
@@ -139,10 +139,10 @@ class TestOpenUrlXdg:
         """xdg-open not installed — FileNotFoundError is caught and logged."""
         with (
             patch(
-                "github_monitor.url_opener.asyncio.create_subprocess_exec",
+                "forgewatch.url_opener.asyncio.create_subprocess_exec",
                 side_effect=FileNotFoundError,
             ),
-            patch("github_monitor.url_opener.logger") as mock_logger,
+            patch("forgewatch.url_opener.logger") as mock_logger,
         ):
             await _open_url_xdg("https://github.com/owner/repo/pull/1")
 
@@ -152,7 +152,7 @@ class TestOpenUrlXdg:
     async def test_oserror_does_not_propagate(self) -> None:
         """OSError during subprocess creation is caught, not propagated."""
         with patch(
-            "github_monitor.url_opener.asyncio.create_subprocess_exec",
+            "forgewatch.url_opener.asyncio.create_subprocess_exec",
             side_effect=OSError("unexpected"),
         ):
             # Should not raise
@@ -165,10 +165,8 @@ class TestOpenUrl:
     async def test_uses_portal_when_available(self) -> None:
         """Portal succeeds — xdg-open is not called."""
         with (
-            patch(
-                "github_monitor.url_opener._open_url_portal", new_callable=AsyncMock, return_value=True
-            ) as mock_portal,
-            patch("github_monitor.url_opener._open_url_xdg", new_callable=AsyncMock) as mock_xdg,
+            patch("forgewatch.url_opener._open_url_portal", new_callable=AsyncMock, return_value=True) as mock_portal,
+            patch("forgewatch.url_opener._open_url_xdg", new_callable=AsyncMock) as mock_xdg,
         ):
             await open_url("https://github.com/owner/repo/pull/1")
 
@@ -178,10 +176,8 @@ class TestOpenUrl:
     async def test_falls_back_to_xdg_open(self) -> None:
         """Portal unavailable — falls back to xdg-open."""
         with (
-            patch(
-                "github_monitor.url_opener._open_url_portal", new_callable=AsyncMock, return_value=False
-            ) as mock_portal,
-            patch("github_monitor.url_opener._open_url_xdg", new_callable=AsyncMock) as mock_xdg,
+            patch("forgewatch.url_opener._open_url_portal", new_callable=AsyncMock, return_value=False) as mock_portal,
+            patch("forgewatch.url_opener._open_url_xdg", new_callable=AsyncMock) as mock_xdg,
         ):
             await open_url("https://github.com/owner/repo/pull/1")
 

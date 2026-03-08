@@ -1,3 +1,3 @@
 from importlib.metadata import version
 
-__version__ = version("github-monitor")
+__version__ = version("forgewatch")

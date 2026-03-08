@@ -1,6 +1,6 @@
 # `notifier.py` -- API reference
 
-Module: `github_monitor.notifier`
+Module: `forgewatch.notifier`
 
 Sends desktop notifications via `notify-send` when new pull requests are
 detected. Small batches get individual notifications with author avatars and
@@ -13,7 +13,7 @@ clickable links; larger batches get a single summary to avoid desktop spam.
 | `_INDIVIDUAL_THRESHOLD` | `3` | Default maximum PRs that trigger individual notifications |
 | `_BATCH_BODY_LIMIT` | `5` | Maximum PRs listed in a batch notification body |
 | `_AVATAR_SIZE` | `64` | Avatar image size in pixels (appended as `?s=N` to URL) |
-| `_AVATAR_CACHE_DIR` | `{tempdir}/github-monitor-avatars` | Directory for cached avatar files |
+| `_AVATAR_CACHE_DIR` | `~/.cache/forgewatch/avatars` | Directory for cached avatar files |
 
 Module-level state:
 
@@ -87,7 +87,7 @@ Low-level function that calls `notify-send` as an async subprocess.
 **Command constructed:**
 
 ```
-notify-send --app-name=github-monitor --urgency={urgency} --icon={icon_or_github} [--action=open=Open] {summary} {body}
+notify-send --app-name=forgewatch --urgency={urgency} --icon={icon_or_github} [--action=open=Open] {summary} {body}
 ```
 
 When `url` is provided, `--action=open=Open` is appended and the process stdout
@@ -150,8 +150,8 @@ See [url_opener.md](url_opener.md) for details on the URL opening mechanism.
 ## Usage example
 
 ```python
-from github_monitor.notifier import notify_new_prs
-from github_monitor.store import PRStore
+from forgewatch.notifier import notify_new_prs
+from forgewatch.store import PRStore
 
 store = PRStore()
 

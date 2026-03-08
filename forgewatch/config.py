@@ -1,4 +1,4 @@
-"""Configuration loading and validation for github-monitor."""
+"""Configuration loading and validation for forgewatch."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-CONFIG_DIR = Path.home() / ".config" / "github-monitor"
+CONFIG_DIR = Path.home() / ".config" / "forgewatch"
 CONFIG_PATH = CONFIG_DIR / "config.toml"
 
 _REPO_PATTERN = re.compile(r"^[a-zA-Z0-9._-]+/[a-zA-Z0-9._-]+$")
@@ -25,7 +25,7 @@ class ConfigError(Exception):
 
 @dataclass(frozen=True)
 class Config:
-    """Validated configuration for github-monitor."""
+    """Validated configuration for forgewatch."""
 
     github_token: str
     github_username: str
@@ -47,8 +47,8 @@ def load_config(path: Path | str | None = None) -> Config:
 
     Path resolution precedence:
         1. Explicit ``path`` argument
-        2. ``GITHUB_MONITOR_CONFIG`` env var
-        3. Default: ``~/.config/github-monitor/config.toml``
+        2. ``FORGEWATCH_CONFIG`` env var
+        3. Default: ``~/.config/forgewatch/config.toml``
 
     The ``github_token`` value can be overridden by the
     ``GITHUB_TOKEN`` env var (takes precedence over the file value).
@@ -79,7 +79,7 @@ def _resolve_path(path: Path | str | None) -> Path:
     if path is not None:
         return Path(path)
 
-    env_path = os.environ.get("GITHUB_MONITOR_CONFIG")
+    env_path = os.environ.get("FORGEWATCH_CONFIG")
     if env_path:
         return Path(env_path)
 

@@ -1,7 +1,7 @@
 # Development guide
 
 This document covers the development setup, tooling configuration, coding
-conventions, and testing approach for github-monitor.
+conventions, and testing approach for ForgeWatch.
 
 ## Prerequisites
 
@@ -11,8 +11,8 @@ conventions, and testing approach for github-monitor.
 ## Setup
 
 ```bash
-git clone https://github.com/<you>/github-monitor.git
-cd github-monitor
+git clone https://github.com/dvoraj75/forgewatch.git
+cd forgewatch
 uv sync          # installs runtime deps + dev dependency group
 ```
 
@@ -22,7 +22,7 @@ ruff, mypy, etc.).
 ## Project structure
 
 ```
-github_monitor/          # Main package
+forgewatch/              # Main package
 ├── __init__.py          # __version__ (from package metadata)
 ├── __main__.py          # Entry point -- dispatches to CLI subcommands or daemon
 ├── config.py            # Config loading + validation
@@ -55,8 +55,8 @@ github_monitor/          # Main package
     └── resources/       # Tray icon image files
 
 systemd/
-├── github-monitor.service            # Systemd user service (daemon)
-└── github-monitor-indicator.service  # Systemd user service (indicator)
+├── forgewatch.service            # Systemd user service (daemon)
+└── forgewatch-indicator.service  # Systemd user service (indicator)
 
 tests/
 ├── conftest.py          # Shared test fixtures
@@ -153,7 +153,7 @@ Test files get relaxed rules:
     "PLR0913", # test helpers often mirror dataclass constructors
     "ERA001",  # commented-out code used as section headers in tests
 ]
-"github_monitor/cli/_systemd.py" = [
+"forgewatch/cli/_systemd.py" = [
     "S603",    # subprocess call with non-literal args — all args are internal constants
     "S607",    # partial executable path — systemctl is a standard system binary
 ]
@@ -178,14 +178,14 @@ Every function must have complete type annotations.
 ```toml
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-addopts = "-ra -v --cov=github_monitor --cov-report=term --cov-fail-under=90 -n auto"
+addopts = "-ra -v --cov=forgewatch --cov-report=term --cov-fail-under=90 -n auto"
 ```
 
 `asyncio_mode = "auto"` means async test functions are automatically detected
 and run in an event loop -- no need for `@pytest.mark.asyncio` decorators.
 
 Tests run in parallel via `pytest-xdist` (`-n auto`) with coverage reporting
-via `pytest-cov` (`--cov=github_monitor`). The `--cov-fail-under=90` flag
+via `pytest-cov` (`--cov=forgewatch`). The `--cov-fail-under=90` flag
 enforces a minimum 90% test coverage -- pytest will exit with a non-zero code
 if total coverage drops below this threshold.
 
@@ -200,7 +200,7 @@ build-backend = "hatchling.build"
 ```
 
 Hatchling is required so that `uv` treats the project as an installable package,
-which is needed for `from github_monitor import ...` to work in tests.
+which is needed for `from forgewatch import ...` to work in tests.
 
 ## Dependencies
 
@@ -238,7 +238,7 @@ manager.
 
 ### System tray indicator dependencies
 
-The indicator (`github_monitor.indicator`) is optional and requires both Python
+The indicator (`forgewatch.indicator`) is optional and requires both Python
 packages and system-level GTK3/AppIndicator3 libraries.
 
 **System packages** (not installable via pip/uv):
@@ -264,7 +264,7 @@ dependencies (`PyGObject`, `pycairo`). The C build dependencies
 build will fail.
 
 Without these, the core daemon works normally — only the system tray indicator
-is unavailable. Running `python -m github_monitor.indicator` will print a clear
+is unavailable. Running `python -m forgewatch.indicator` will print a clear
 error message listing the missing packages.
 
 ## Coding conventions
@@ -380,8 +380,8 @@ push and pull request to `main` or `develop`, two jobs run **in parallel**:
 1. **Lockfile verification** -- `uv lock --check` (ensures `uv.lock` matches `pyproject.toml`)
 2. **Lint** -- `ruff check .`
 3. **Format** -- `ruff format --check .`
-4. **Type check** -- `mypy github_monitor`
-5. **ShellCheck** -- lints the deprecated `.sh` scripts (`install.sh`, `update.sh`, `uninstall.sh`)
+4. **Type check** -- `mypy forgewatch`
+5. **ShellCheck** -- lints shell scripts
 
 ### Test & audit
 
