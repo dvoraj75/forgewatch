@@ -60,7 +60,7 @@ is configurable to support GitHub Enterprise Server installations. Handles
 pagination (Link header), rate limiting (X-RateLimit headers with preemptive
 waiting), retries with exponential backoff on 5xx errors (configurable retry
 count), and proper error classification (401 -> `AuthError`, 403 -> rate limit
-retry, network errors -> graceful degradation).
+retry, network errors -> raise to caller so store state is preserved).
 
 The two search queries are run concurrently via `asyncio.gather`, and results
 are deduplicated by PR URL, with flags merged when a PR appears in both
@@ -321,8 +321,8 @@ The system is designed to be resilient to transient failures:
 
 | Error | Behavior |
 |---|---|
-| Network error | Retry up to `max_retries` times (configurable, default 3) with exponential backoff, then return empty |
-| HTTP 5xx | Retry up to `max_retries` times (configurable, default 3) with exponential backoff, then return empty |
+| Network error | Retry up to `max_retries` times (configurable, default 3) with exponential backoff, then raise (daemon catches, preserves store state) |
+| HTTP 5xx | Retry up to `max_retries` times (configurable, default 3) with exponential backoff, then return last response |
 | HTTP 401 | Raise `AuthError` immediately (bad token, no point retrying) |
 | HTTP 403 | Respect `Retry-After` header, retry once, then return empty |
 | Rate limit exhausted | Preemptively wait until reset time before making request |
