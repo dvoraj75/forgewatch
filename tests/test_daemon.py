@@ -243,6 +243,50 @@ class TestPollOnce:
             await daemon._poll_once()
             mock_logger.exception.assert_called_once()
 
+    async def test_network_error_preserves_store_state(self) -> None:
+        """When fetch fails (e.g. network down), the store must keep its last known PRs."""
+        daemon = Daemon(_make_config())
+        daemon.interface = MagicMock()
+
+        # First poll — succeeds, populates the store
+        pr1 = _make_pr(1)
+        pr2 = _make_pr(2)
+        daemon.client.fetch_all = AsyncMock(return_value=[pr1, pr2])  # type: ignore[method-assign]
+        await daemon._poll_once()
+        assert daemon.store.get_status().pr_count == 2
+
+        # Second poll — network error (e.g. internet disconnected)
+        daemon.client.fetch_all = AsyncMock(side_effect=OSError("Network unreachable"))  # type: ignore[method-assign]
+        await daemon._poll_once()
+
+        # Store must still have the 2 PRs from before the failure
+        assert daemon.store.get_status().pr_count == 2
+        stored_urls = {pr.url for pr in daemon.store.get_all()}
+        assert pr1.url in stored_urls
+        assert pr2.url in stored_urls
+
+    async def test_no_spurious_notifications_after_network_recovery(self) -> None:
+        """After a network outage, reconnecting must NOT re-notify for known PRs."""
+        daemon = Daemon(_make_config())
+        daemon.interface = MagicMock()
+
+        # First poll — succeeds (notifications suppressed because _first_poll=True)
+        pr1 = _make_pr(1)
+        daemon.client.fetch_all = AsyncMock(return_value=[pr1])  # type: ignore[method-assign]
+        await daemon._poll_once()
+        assert daemon._first_poll is False
+
+        # Second poll — network error
+        daemon.client.fetch_all = AsyncMock(side_effect=OSError("Network unreachable"))  # type: ignore[method-assign]
+        await daemon._poll_once()
+
+        # Third poll — network recovers, same PRs come back
+        daemon.client.fetch_all = AsyncMock(return_value=[pr1])  # type: ignore[method-assign]
+        with patch("forgewatch.daemon.notify_new_prs", new_callable=AsyncMock) as mock_notify:
+            await daemon._poll_once()
+            # No notification — pr1 was already known before the outage
+            mock_notify.assert_not_awaited()
+
     async def test_handles_none_interface_gracefully(self) -> None:
         daemon = Daemon(_make_config())
         prs = [_make_pr(1)]

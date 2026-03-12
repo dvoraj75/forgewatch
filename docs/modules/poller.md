@@ -259,7 +259,9 @@ Core search method. Executes a paginated search against `GET /search/issues`
 using the configured `_base_url`:
 
 1. Waits for rate limit if necessary (`_wait_for_rate_limit()`)
-2. Makes the request via `_request_with_retry()`
+2. Makes the request via `_request_with_retry()`. If the request raises a
+   non-`AuthError` exception (e.g. network error after retries exhausted),
+   the exception is logged and re-raised to the caller
 3. Updates rate limit state from response headers
 4. Handles status codes:
    - **200:** Extracts items, checks for `Link: rel="next"` header
@@ -336,9 +338,10 @@ Parses the `Link` HTTP header to extract the URL with `rel="next"`. Returns
 | HTTP 401 | Raise `AuthError` immediately |
 | HTTP 403 + `Retry-After` | Sleep for the specified duration, retry once |
 | HTTP 5xx | Retry up to `_max_retries` times with exponential backoff (2^n seconds) |
-| Network error | Retry up to `_max_retries` times with exponential backoff |
+| Network error | Retry up to `_max_retries` times with exponential backoff, then raise |
 | Rate limit near exhaustion | Preemptively wait until reset before making request |
-| All retries exhausted | Return empty list (log error, don't crash) |
+| All retries exhausted (5xx) | Return last response (caller handles the status code) |
+| All retries exhausted (network) | Raise exception (daemon catches, preserves store state) |
 
 ## Usage example
 

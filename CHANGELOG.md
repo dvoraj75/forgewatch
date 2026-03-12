@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.4.1] - Unreleased
 
+### Fixed
+
+- Network errors (e.g. connectivity loss) no longer wipe the PR store -- the poller now re-raises exceptions instead of silently returning an empty list, so the daemon preserves last-known-good state and avoids spurious "new PR" notifications on recovery
+
 ### Changed
 
 - Lowered minimum Python version from 3.13 to 3.11 -- no code changes required; the codebase only uses `tomllib`, `enum.StrEnum`, and `datetime.UTC` from 3.11+
