@@ -351,7 +351,8 @@ class TestErrorHandling:
         assert len(prs) == 1
         await client.close()
 
-    async def test_network_error_returns_empty(self) -> None:
+    async def test_network_error_raises(self) -> None:
+        """Network errors should propagate so callers can preserve state."""
         client = GitHubClient(token="tok", username="user")
         await client.start()
 
@@ -360,17 +361,9 @@ class TestErrorHandling:
                 SEARCH_URL_RE,
                 exception=aiohttp.ClientError("connection failed"),
             )
-            m.get(
-                SEARCH_URL_RE,
-                exception=aiohttp.ClientError("connection failed"),
-            )
-            m.get(
-                SEARCH_URL_RE,
-                exception=aiohttp.ClientError("connection failed"),
-            )
-            prs = await client.fetch_review_requested()
+            with pytest.raises(aiohttp.ClientError, match="connection failed"):
+                await client.fetch_review_requested()
 
-        assert prs == []
         await client.close()
 
 
@@ -505,16 +498,15 @@ class TestCustomMaxRetries:
         assert prs == []
         await client.close()
 
-    async def test_zero_retries_returns_immediately(self) -> None:
-        """max_retries=0 means no retries — empty loop."""
+    async def test_zero_retries_raises_immediately(self) -> None:
+        """max_retries=0 means no retries — raises RuntimeError."""
         client = GitHubClient(token="tok", username="user", max_retries=0)
         await client.start()
 
-        with aioresponses():
+        with aioresponses(), pytest.raises(RuntimeError, match="No retries attempted"):
             # No requests should be made (range(0) is empty)
-            prs = await client.fetch_review_requested()
+            await client.fetch_review_requested()
 
-        assert prs == []
         await client.close()
 
 

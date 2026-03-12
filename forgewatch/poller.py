@@ -231,7 +231,7 @@ class GitHubClient:
                 raise
             except Exception:
                 logger.exception("Error fetching %s", url)
-                break
+                raise
 
             self._update_rate_limit(resp)
 
