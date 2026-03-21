@@ -710,7 +710,7 @@ finally:
   (synchronous) and D-Bus calls (asynchronous) to run cooperatively in a
   single thread
 - The `_schedule()` pattern in `IndicatorApp` bridges sync GTK callbacks to
-  async coroutines by wrapping them in `asyncio.ensure_future()` and storing
+  async coroutines by wrapping them in `asyncio.create_task()` and storing
   task references to prevent garbage collection
 - Auto-reconnection: when the daemon exits or crashes, the client detects the
   `NameOwnerChanged` signal and retries the connection at a configurable
