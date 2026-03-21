@@ -135,7 +135,7 @@ Uses a two-level cache:
 1. **In-memory** (`_avatar_cache`): instant lookup for avatars already downloaded
    this session
 2. **On-disk** (`_AVATAR_CACHE_DIR`): persists across restarts via deterministic
-   filenames (MD5 hash of the URL)
+   filenames (SHA-256 hash of the URL)
 
 The caller provides a shared `aiohttp.ClientSession` so that avatar downloads
 within a notification batch reuse the same HTTP connection.
@@ -273,7 +273,7 @@ await notify_new_prs(diff.new_prs, grouping="repo", repo_overrides=overrides)
   when the portal is unavailable. The portal approach is necessary because
   `xdg-open` fails silently inside the systemd sandbox when the browser is a
   Snap package (Snap's `snap-confine` rejects the restricted permissions)
-- Author avatars are downloaded from GitHub, cached on disk (MD5-hashed
+- Author avatars are downloaded from GitHub, cached on disk (SHA-256-hashed
   filenames), and passed to `notify-send` via `--icon={path}`. A shared
   `aiohttp.ClientSession` is used for all avatar downloads within a
   notification batch to avoid creating a new session per avatar
