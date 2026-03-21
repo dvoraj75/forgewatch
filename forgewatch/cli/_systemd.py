@@ -43,11 +43,21 @@ def _read_service_file(name: str) -> str:
 
 def _run_systemctl(*args: str) -> subprocess.CompletedProcess[bytes]:
     """Run a systemctl --user command and return the result."""
-    return subprocess.run(
-        ["systemctl", "--user", *args],
-        check=False,
-        capture_output=True,
-    )
+    try:
+        return subprocess.run(
+            ["systemctl", "--user", *args],
+            check=False,
+            capture_output=True,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        warn(f"systemctl {' '.join(args)} timed out after 30 seconds")
+        return subprocess.CompletedProcess(
+            args=["systemctl", "--user", *args],
+            returncode=1,
+            stdout=b"",
+            stderr=b"timed out",
+        )
 
 
 def install_service_files(*, include_indicator: bool = False) -> None:
@@ -172,10 +182,14 @@ def disable(service: str) -> None:
 
 def print_status(service: str) -> None:
     """Print the status of a systemd user service (output goes directly to terminal)."""
-    subprocess.run(
-        ["systemctl", "--user", "status", service, "--no-pager"],
-        check=False,
-    )
+    try:
+        subprocess.run(
+            ["systemctl", "--user", "status", service, "--no-pager"],
+            check=False,
+            timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        warn(f"systemctl status {service} timed out after 30 seconds")
 
 
 def service_file_installed(service: str) -> bool:
