@@ -258,7 +258,7 @@ class DaemonClient:
             # a failed connect() -> _set_disconnected() -> _schedule_reconnect()
             # chain can schedule a fresh timer instead of bailing out.
             self._reconnect_handle = None
-            asyncio.ensure_future(self.connect())  # noqa: RUF006
+            asyncio.create_task(self.connect())  # noqa: RUF006
 
         self._reconnect_handle = loop.call_later(self._reconnect_interval, _fire)
         logger.debug("Reconnect scheduled in %ds", self._reconnect_interval)

@@ -78,7 +78,7 @@ async def _download_avatar(avatar_url: str, session: aiohttp.ClientSession) -> s
     _AVATAR_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     # Deterministic filename from URL
-    url_hash = hashlib.md5(avatar_url.encode()).hexdigest()  # noqa: S324
+    url_hash = hashlib.sha256(avatar_url.encode()).hexdigest()
     dest = _AVATAR_CACHE_DIR / f"{url_hash}.png"
 
     # If already on disk (from a previous run), reuse

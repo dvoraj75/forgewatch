@@ -780,7 +780,7 @@ class TestDownloadAvatarDiskCache:
         from forgewatch import notifier
 
         avatar_url = "https://avatars.githubusercontent.com/u/disk-cache-1"
-        url_hash = hashlib.md5(avatar_url.encode()).hexdigest()  # noqa: S324
+        url_hash = hashlib.sha256(avatar_url.encode()).hexdigest()
         cached_file = tmp_path / f"{url_hash}.png"
         cached_file.write_bytes(b"\x89PNG old data")
 
