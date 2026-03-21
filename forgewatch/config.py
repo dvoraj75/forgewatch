@@ -119,6 +119,8 @@ def load_config(path: Path | str | None = None) -> Config:
         msg = f"Config file not found: {config_path}"
         raise ConfigError(msg)
 
+    _check_permissions(config_path)
+
     try:
         with config_path.open("rb") as f:
             raw = tomllib.load(f)
@@ -203,6 +205,23 @@ def _resolve_path(path: Path | str | None) -> Path:
         return Path(env_path)
 
     return CONFIG_PATH
+
+
+def _check_permissions(path: Path) -> None:
+    """Warn if the config file is readable by group or others.
+
+    The config file may contain a GitHub PAT, so it should only be
+    readable by its owner (mode ``0o600`` or stricter).
+    """
+    mode = path.stat().st_mode
+    if mode & 0o077:
+        logger.warning(
+            "Config file %s has insecure permissions %s — "
+            "the file contains sensitive credentials and should not be "
+            "readable by group or others (recommended: chmod 600)",
+            path,
+            oct(mode),
+        )
 
 
 def _warn_unknown_keys(raw: dict[str, object]) -> None:
