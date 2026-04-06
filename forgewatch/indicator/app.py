@@ -226,7 +226,7 @@ class IndicatorApp:
         The task reference is stored in ``_tasks`` to prevent garbage
         collection before the coroutine completes.
         """
-        task = asyncio.ensure_future(coro)
+        task = asyncio.create_task(coro)
         self._tasks.add(task)
         task.add_done_callback(self._task_done)
 
